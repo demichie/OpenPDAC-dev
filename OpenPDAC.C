@@ -176,14 +176,28 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     mesh.schemes().setFluxRequired(p_rgh.name());
 
-    
+    volVectorField U
+    (
+        IOobject
+        (
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        fluid.U()
+    );
+
+    U.write();
+  
     hydrostaticInitialisation
     (
         p_rgh,
         p,
+        buoyancy.g,
         buoyancy.gh,
         buoyancy.ghf,
-        buoyancy.pRef,
         fluid,
         pimple.dict()
     );

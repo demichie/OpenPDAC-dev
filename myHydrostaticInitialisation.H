@@ -58,9 +58,9 @@ namespace Foam
     (
         volScalarField& p_rgh,
         volScalarField& p,
+        const uniformDimensionedVectorField& g,
         const volScalarField& gh,
         const surfaceScalarField& ghf,
-        const uniformDimensionedScalarField& pRef,
         phaseSystem& fluid,
         const dictionary& dict
     );

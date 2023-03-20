@@ -39,13 +39,15 @@ void Foam::hydrostaticInitialisation
 (
     volScalarField& p_rgh,
     volScalarField& p,
+    const uniformDimensionedVectorField& g,
     const volScalarField& gh,
     const surfaceScalarField& ghf,
-    const uniformDimensionedScalarField& pRef,
     phaseSystem& fluid,
     const dictionary& dict
 )
 {
+    dimensionedScalar pRef("pRef",dimensionSet(1, -1, -2, 0, 0),scalar(101325.0));
+
     if (dict.lookupOrDefault<bool>("hydrostaticInitialisation", false))
     {
         const fvMesh& mesh = p_rgh.mesh();
@@ -53,26 +55,6 @@ void Foam::hydrostaticInitialisation
         volScalarField rho("rho", fluid.rho());
         volVectorField U("U", fluid.U());
 
-        if (!mesh.time().restart())
-            {
-
-                volScalarField& ph = regIOobject::store
-       	        (
-                    new volScalarField
-                    (
-                        IOobject
-                        (
-                            "ph",
-                            "0",
-                            mesh,
-                            IOobject::MUST_READ,
-                            IOobject::NO_WRITE
-               	        ),
-               	        mesh
-                    )
-       	        );
-            }
-            
         volScalarField& ph_rgh = regIOobject::store
         (
             new volScalarField
@@ -89,9 +71,96 @@ void Foam::hydrostaticInitialisation
             )
         );
 
+        dimensionedScalar xMin = min(mesh.Cf().component(0));
+        dimensionedScalar xMax = max(mesh.Cf().component(0));
+        dimensionedScalar yMin = min(mesh.Cf().component(1));
+        dimensionedScalar yMax = max(mesh.Cf().component(1));
+        dimensionedScalar zMin = min(mesh.Cf().component(2));
+        dimensionedScalar zMax = max(mesh.Cf().component(2));
+     
         if (!mesh.time().restart())
         {
-            p = ph_rgh + rho*gh + pRef;
+
+            volScalarField& ph = regIOobject::store
+            (
+                new volScalarField
+                (
+                    IOobject
+                    (
+                        "ph",
+                        "0",
+                        mesh,
+                        IOobject::MUST_READ,
+                        IOobject::NO_WRITE
+                    ),
+               	    mesh
+                )
+       	    );
+
+	    label nFixValPatches = 0;
+	    label bdryPref = 0;
+
+            forAll(ph.boundaryField(), bdryID)     
+   	    {    		
+	        Info << "magSfBdry" << mesh.Sf().boundaryField()[bdryID][0] << endl;
+   	        //if ( ( mag(mesh.Sf().boundaryField()[bdryID][0]^g).value() == 0.0 ) 
+   	        if ( ( mag(mesh.Sf().boundaryField()[bdryID][0]^g).value() <= 
+   	               1.0e-8*mag(mesh.Sf().boundaryField()[bdryID][0])*mag(g).value() ) 
+   			    	&& ( ph.boundaryField()[bdryID].type() == "fixedValue" ) )
+       	        {
+   	            nFixValPatches +=1;
+   	            const fvPatchScalarField& ph_p = ph.boundaryField()[bdryID];
+    			    
+		    if ( min(ph_p) == max(ph_p) )
+		    {
+		        pRef.value() = min(ph_p);
+		        bdryPref = bdryID;
+		        Info << "pRef " << pRef.value() << endl;
+		    }					
+
+   	        }
+	    }
+
+            ph = pRef;
+            // the new hydrostatic pressure profile is used to update the density field 		
+            p = ph;
+            fluid.correctThermo();
+            rho = fluid.rho();         
+            
+            // we initialize the field ph_rgh with the computed pressure and density
+            ph_rgh = ph - rho*gh;
+       
+            // Find the label of the patch that shall be changed
+            label patchID = mesh.boundaryMesh().findPatchID("top");
+        
+            // we change the fixed value b.c. of ph_rgh at the top face, in order to be 
+            // consistent with the values of ph, rho and gh
+            forAll(ph_rgh.boundaryField()[patchID], faceI)
+            {
+                ph_rgh.boundaryFieldRef()[patchID][faceI] = ph.boundaryField()[bdryPref][faceI] 
+                    - rho.boundaryField()[bdryPref][faceI] * gh.boundaryField()[bdryPref][faceI];
+            }           
+            
+            surfaceScalarField rhof("rhof", fvc::interpolate(rho));
+            surfaceScalarField phig
+            (
+                "phig",-rhof*ghf*fvc::snGrad(rho)*mesh.magSf()
+            );
+
+            // Update the pressure BCs to ensure flux consistency
+            constrainPressure(ph_rgh, rho, U, phig, rhof);
+            p = ph_rgh + rho*gh;
+            
+            fluid.correctThermo();
+            rho = fluid.rho();
+
+            const fvPatchScalarField& ph_rgh_top = ph_rgh.boundaryField()[patchID];
+
+            Info<< "min ph_rgh top " << min(ph_rgh_top) <<
+   	           "max ph_rgh top " << max(ph_rgh_top) << endl;
+            
+            
+            p = ph_rgh + rho*gh;
             fluid.correctThermo();
             rho = fluid.rho();
 
@@ -120,15 +189,25 @@ void Foam::hydrostaticInitialisation
 
                 ph_rghEqn.solve();
 
-                p = ph_rgh + rho*gh + pRef;
+                p = ph_rgh + rho*gh;
                 fluid.correctThermo();
                 rho = fluid.rho();
 
                 Info<< "Hydrostatic pressure variation "
                     << (max(ph_rgh) - min(ph_rgh)).value() << endl;
+
+                Info<< "min p " << min(p).value() <<
+                       "max p " << max(p).value() << endl;
+                Info<< "min rho " << min(rho).value() <<
+                       "max rho " << max(rho).value() << endl;
+
+
             }
 
             ph_rgh.write();
+            p.write();
+            rho.write();
+	
 
             p_rgh = ph_rgh;
         }
@@ -137,7 +216,7 @@ void Foam::hydrostaticInitialisation
     {
         volScalarField rho("rho", fluid.rho());
         // Force p_rgh to be consistent with p
-        p_rgh = p - rho*gh - pRef;
+        p_rgh = p - rho*gh;
     }
 }
 
