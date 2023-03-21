@@ -100,7 +100,6 @@ protected:
     //- Buoyancy force
     solvers::buoyancy buoyancy;
 
-
     // Phase properties
 
         autoPtr<phaseSystem> fluidPtr;
@@ -119,8 +118,21 @@ protected:
         //- Reference to the buoyant pressure for buoyant cases
         //  otherwise to the pressure
         volScalarField& p_rgh;
+ 
+        // mixture density
+        volScalarField rho;
+        
+        label carrierIdx;
+        
+        // carrier phase viscosity
+        volScalarField muC;
 
+        // mixture viscosity
+        volScalarField mu;
 
+        // mixture velocity         
+        volVectorField U;
+               
     // Pressure reference
 
         //- Pressure reference

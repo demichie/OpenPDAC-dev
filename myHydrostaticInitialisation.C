@@ -40,6 +40,7 @@ void Foam::hydrostaticInitialisation
     volScalarField& p_rgh,
     volScalarField& p,
     const uniformDimensionedVectorField& g,
+    dimensionedScalar& hRef,
     const volScalarField& gh,
     const surfaceScalarField& ghf,
     phaseSystem& fluid,
@@ -51,7 +52,7 @@ void Foam::hydrostaticInitialisation
     if (dict.lookupOrDefault<bool>("hydrostaticInitialisation", false))
     {
         const fvMesh& mesh = p_rgh.mesh();
-
+        
         volScalarField rho("rho", fluid.rho());
         volVectorField U("U", fluid.U());
 
@@ -116,12 +117,41 @@ void Foam::hydrostaticInitialisation
 		        pRef.value() = min(ph_p);
 		        bdryPref = bdryID;
 		        Info << "pRef " << pRef.value() << endl;
+		        if ( g.component(0).value() != 0.0 )
+		        {
+		            hRef = xMax;
+		        }
+		        else if ( g.component(1).value() != 0.0 )
+		        {
+		            hRef = yMax;
+		        }
+		        else
+		        {
+		            hRef = zMax;
+		        }        
+		        
+		             
 		    }					
 
    	        }
 	    }
 
             ph = pRef;
+            
+            for (label i=0; i<5; i++)
+            {
+                p = ph;
+                fluid.correctThermo();
+                rho = fluid.rho();
+
+                ph = pRef- ( ( g & mesh.C() ) - (-mag(g)*hRef) ) * 0.5* ( min(rho)+ max(rho));
+                Info<< "min ph " << min(ph).value() << 
+                       " max ph " << max(ph).value() << endl;
+            }
+            
+            hRef.value() = 0.0;
+            Info << "hRef " << hRef.value() << endl;
+                    
             // the new hydrostatic pressure profile is used to update the density field 		
             p = ph;
             fluid.correctThermo();
@@ -206,8 +236,6 @@ void Foam::hydrostaticInitialisation
 
             ph_rgh.write();
             p.write();
-            rho.write();
-	
 
             p_rgh = ph_rgh;
         }

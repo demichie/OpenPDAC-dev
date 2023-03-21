@@ -31,6 +31,8 @@ License
 #include "fvcMeshPhi.H"
 #include "addToRunTimeSelectionTable.H"
 #include "myHydrostaticInitialisation.H"
+#include "parcelCloudList.H"
+#include "IOobjectList.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -161,6 +163,61 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     p_rgh(buoyancy.p_rgh),
 
+    rho
+    (
+        IOobject
+        (
+            "rho",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        fluid.rho()
+    ),
+    
+    carrierIdx(0),
+
+    muC
+    (
+        IOobject
+        (
+            "muC",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::NO_WRITE
+        ),
+        mesh 
+    ),    
+
+    mu
+    (
+        IOobject
+        (
+            "mu",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    ),
+
+    U
+    (
+        IOobject
+        (
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        fluid.U()
+    ),
+
+
     pressureReference
     (
         p,
@@ -176,18 +233,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     mesh.schemes().setFluxRequired(p_rgh.name());
 
-    volVectorField U
-    (
-        IOobject
-        (
-            "U",
-            runTime.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::AUTO_WRITE
-        ),
-        fluid.U()
-    );
+    U = fluid.U();
 
     U.write();
   
@@ -196,13 +242,56 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
         p_rgh,
         p,
         buoyancy.g,
+        buoyancy.hRef,
         buoyancy.gh,
         buoyancy.ghf,
         fluid,
         pimple.dict()
     );
     
+    fluid.correctThermo();
+    rho = fluid.rho();
+    rho.write();
 
+    Info << "hRef " << buoyancy.hRef.value() << endl;
+
+    Info<< "min p " << min(p).value() <<
+  	               " max p " << max(p).value() << endl;
+    Info<< "min p_rgh " << min(p_rgh).value() <<
+   	               " max p_rgh " << max(p_rgh).value() << endl;
+    Info<< "min rho " << min(rho).value() <<
+   	               " max rho " << max(rho).value() << endl;
+
+    // label carrierIdx;
+
+    carrierIdx = 0;
+
+    forAll(phases, phasei)
+    {
+        phaseModel& phase = phases[phasei];
+        if (!phase.incompressible())
+        {
+    	    Info << phasei << " compressible" << endl;
+    	    carrierIdx = phasei;
+        }
+	    else
+        {
+    	    Info << phasei << " incompressible" << endl;
+        }
+
+    }
+
+    muC = phases[carrierIdx].thermo().mu();
+
+    Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
+    
+    mu = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
+
+    Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
+
+    Info<< "Constructing clouds" << endl;
+    // parcelCloudList clouds(rho, U, mu, buoyancy.g);
+    
 
     if (transient())
     {
@@ -295,6 +384,15 @@ void Foam::solvers::OpenPDAC::postCorrector()
 void Foam::solvers::OpenPDAC::postSolve()
 {
     divU.clear();
+    mu = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
+    U = fluid.U();
+    rho = fluid.rho();
+		
+    Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
+
+    // clouds.evolve();
+
+    
 }
 
 
