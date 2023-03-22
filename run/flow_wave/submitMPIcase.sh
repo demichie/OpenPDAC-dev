@@ -1,5 +1,5 @@
-module load openFOAM-10
-source $FOAM_BASHRC
+# module load openFOAM-10
+# source $FOAM_BASHRC
 
 foamCleanCase
 

@@ -207,6 +207,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
         fluid.U()
     ),
     
+    // Initialize cloud
     clouds(rho, U, mu, buoyancy.g),
     
     pressureReference
@@ -224,22 +225,24 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     mesh.schemes().setFluxRequired(p_rgh.name());
 
-        volScalarField& ph_rgh = regIOobject::store
+    // create ph_rgh (p_rgh for hydrostatic pressure)
+    volScalarField& ph_rgh = regIOobject::store
+    (
+        new volScalarField
         (
-            new volScalarField
+            IOobject
             (
-                IOobject
-                (
-                    "ph_rgh",
-                    "0",
-                    mesh,
-                    IOobject::MUST_READ,
-                    IOobject::NO_WRITE
-                ),
-                mesh
-            )
-        );
+                "ph_rgh",
+                "0",
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::NO_WRITE
+            ),
+            mesh
+        )
+    );
 
+    // Initialization of hydrostatic pressure profile
     hydrostaticInitialisation
     (
         p_rgh,
@@ -252,14 +255,11 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
         fluid,
         pimple.dict()
     );
-    
+
+    // Correct mixture thermodynamics with new pressure    
     fluid.correctThermo();
     rho = fluid.rho();
-    rho.write();
-    mu.write();
-    clouds.info();
-    mesh.write();
-    
+
     Info << "hRef " << buoyancy.hRef.value() << endl;
 
     Info<< "min p " << min(p).value() <<
@@ -269,6 +269,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     Info<< "min rho " << min(rho).value() <<
    	               " max rho " << max(rho).value() << endl;
 
+    // Search for carrier phase
     carrierIdx = 0;
 
     forAll(phases, phasei)
@@ -286,12 +287,15 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     }
 
+    // Carrier phase viscosity
     muC = phases[carrierIdx].thermo().mu();
 
     Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
     
+    // Mixture viscosity
     mu = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
 
+    // Compute mass-weighted mixture velocity
     U *= 0.0;
     forAll(phases, phasei)
     {
@@ -302,9 +306,9 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
 
-    Info<< "Constructing clouds" << endl;
-    // parcelCloudList clouds(rho, U, mu, buoyancy.g);
-    
+    clouds.info();
+        
+    mesh.write();
 
     if (transient())
     {
