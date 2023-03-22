@@ -56,6 +56,7 @@ See also
 #include "phaseCompressibleMomentumTransportModel.H"
 #include "buoyancy.H"
 #include "pressureReference.H"
+#include "parcelCloudList.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -118,10 +119,11 @@ protected:
         //- Reference to the buoyant pressure for buoyant cases
         //  otherwise to the pressure
         volScalarField& p_rgh;
- 
+
         // mixture density
         volScalarField rho;
         
+        // index of continuous phase
         label carrierIdx;
         
         // carrier phase viscosity
@@ -132,7 +134,9 @@ protected:
 
         // mixture velocity         
         volVectorField U;
-               
+        
+        parcelCloudList clouds;
+        
     // Pressure reference
 
         //- Pressure reference

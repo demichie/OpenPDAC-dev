@@ -38,6 +38,7 @@ License
 void Foam::hydrostaticInitialisation
 (
     volScalarField& p_rgh,
+    volScalarField& ph_rgh,
     volScalarField& p,
     const uniformDimensionedVectorField& g,
     dimensionedScalar& hRef,
@@ -55,22 +56,6 @@ void Foam::hydrostaticInitialisation
         
         volScalarField rho("rho", fluid.rho());
         volVectorField U("U", fluid.U());
-
-        volScalarField& ph_rgh = regIOobject::store
-        (
-            new volScalarField
-            (
-                IOobject
-                (
-                    "ph_rgh",
-                    "0",
-                    mesh,
-                    IOobject::MUST_READ,
-                    IOobject::NO_WRITE
-                ),
-                mesh
-            )
-        );
 
         dimensionedScalar xMin = min(mesh.Cf().component(0));
         dimensionedScalar xMax = max(mesh.Cf().component(0));

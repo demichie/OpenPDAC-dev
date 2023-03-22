@@ -31,7 +31,7 @@ License
 #include "fvcMeshPhi.H"
 #include "addToRunTimeSelectionTable.H"
 #include "myHydrostaticInitialisation.H"
-#include "parcelCloudList.H"
+
 #include "IOobjectList.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
@@ -168,7 +168,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
         IOobject
         (
             "rho",
-            runTime.timeName(),
+            runTime.name(),
             mesh,
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
@@ -178,46 +178,37 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     
     carrierIdx(0),
 
-    muC
-    (
-        IOobject
-        (
-            "muC",
-            runTime.timeName(),
-            mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
-        ),
-        mesh 
-    ),    
+    muC(phases[carrierIdx].thermo().mu()),
 
     mu
     (
         IOobject
         (
             "mu",
-            runTime.timeName(),
+            runTime.name(),
             mesh,
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        mesh
+        muC
     ),
+        
 
     U
     (
         IOobject
         (
             "U",
-            runTime.timeName(),
+            runTime.name(),
             mesh,
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
         fluid.U()
     ),
-
-
+    
+    clouds(rho, U, mu, buoyancy.g),
+    
     pressureReference
     (
         p,
@@ -233,13 +224,26 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     mesh.schemes().setFluxRequired(p_rgh.name());
 
-    U = fluid.U();
+        volScalarField& ph_rgh = regIOobject::store
+        (
+            new volScalarField
+            (
+                IOobject
+                (
+                    "ph_rgh",
+                    "0",
+                    mesh,
+                    IOobject::MUST_READ,
+                    IOobject::NO_WRITE
+                ),
+                mesh
+            )
+        );
 
-    U.write();
-  
     hydrostaticInitialisation
     (
         p_rgh,
+        ph_rgh,
         p,
         buoyancy.g,
         buoyancy.hRef,
@@ -252,7 +256,10 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     fluid.correctThermo();
     rho = fluid.rho();
     rho.write();
-
+    mu.write();
+    clouds.info();
+    mesh.write();
+    
     Info << "hRef " << buoyancy.hRef.value() << endl;
 
     Info<< "min p " << min(p).value() <<
@@ -261,8 +268,6 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
    	               " max p_rgh " << max(p_rgh).value() << endl;
     Info<< "min rho " << min(rho).value() <<
    	               " max rho " << max(rho).value() << endl;
-
-    // label carrierIdx;
 
     carrierIdx = 0;
 
@@ -286,6 +291,14 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
     
     mu = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
+
+    U *= 0.0;
+    forAll(phases, phasei)
+    {
+        phaseModel& phase = phases[phasei];
+        U += phase * phase.rho() * phase.U() / rho;
+
+    }
 
     Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
 
@@ -385,12 +398,19 @@ void Foam::solvers::OpenPDAC::postSolve()
 {
     divU.clear();
     mu = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
-    U = fluid.U();
     rho = fluid.rho();
-		
+
+    U *= 0.0;
+    forAll(phases, phasei)
+    {
+        phaseModel& phase = phases[phasei];
+        U += phase * phase.rho() * phase.U() / rho;
+
+    }
+
     Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
 
-    // clouds.evolve();
+    clouds.evolve();
 
     
 }

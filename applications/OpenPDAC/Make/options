@@ -1,4 +1,6 @@
 EXE_INC = \
+    -I$(LIB_SRC)/lagrangian/basic/lnInclude \
+    -I$(LIB_SRC)/lagrangian/parcel/lnInclude \
     -I$(FOAM_SOLVERS)/modules/fluidSolver/lnInclude \
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/include \
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/phaseSystems/lnInclude \
@@ -16,6 +18,9 @@ EXE_INC = \
     -I$(LIB_SRC)/sampling/lnInclude
 
 LIB_LIBS = \
+    -llagrangian \
+    -llagrangianParcel \
+    -llagrangianParcelTurbulence \
     -lfluidSolver \
     -lphaseSystem \
     -lmultiphaseSystems \

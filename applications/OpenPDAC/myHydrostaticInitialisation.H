@@ -57,6 +57,7 @@ namespace Foam
     void hydrostaticInitialisation
     (
         volScalarField& p_rgh,
+        volScalarField& ph_rgh,
         volScalarField& p,
         const uniformDimensionedVectorField& g,
         dimensionedScalar& hRef,
