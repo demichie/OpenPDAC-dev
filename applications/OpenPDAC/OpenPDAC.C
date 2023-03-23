@@ -307,9 +307,33 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
 
     clouds.info();
-        
-    mesh.write();
+    
+    if (pimple.dict().lookupOrDefault<bool>("hydrostaticInitialisation", false))
+    {
+ 
+        const Time& runTime = mesh().time();
+        scalar startTime_ = runTime.startTime().value();
+        scalar deltaT = runTime.deltaT().value();
 
+        // set small value for deltaT to evolve particles    
+        const_cast<Time&>(runTime).setDeltaT(1.e-5*deltaT);
+
+        // increase time iterator            
+        const_cast<Time&>(runTime)++;
+    
+        // evolve particle cloud
+        clouds.evolve();
+
+        // restore startTime
+        const_cast<Time&>(runTime).setTime(startTime_,startTime_);
+                
+        // restore deltaT            
+        const_cast<Time&>(runTime).setDeltaT(deltaT);
+
+        // write everything (including lagrangian)
+        const_cast<Time&>(runTime).writeNow();
+    }  
+    
     if (transient())
     {
         correctCoNum();

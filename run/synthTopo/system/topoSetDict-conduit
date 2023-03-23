@@ -1,0 +1,47 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+actions
+(
+    {
+        name    conduit;
+        type    cellSet;
+        action  new;
+        source surfaceToCell;
+        sourceInfo
+        {
+            file            "./constant/triSurface/surface_in_closed.stl";
+            outsidePoints   ((0 0 2000));
+            includeCut      true;
+            includeInside   true;
+            includeOutside  false;
+            nearDistance    0;
+            curvature       -100;
+        }
+    }
+    {
+        name    conduit;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        sourceInfo
+        {
+           set  conduit;
+        }
+    }    
+    
+);
+
+// ************************************************************************* //
