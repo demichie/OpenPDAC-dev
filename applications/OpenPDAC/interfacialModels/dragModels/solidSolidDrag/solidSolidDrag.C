@@ -23,9 +23,10 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "myDrag.H"
+#include "solidSolidDrag.H"
 #include "phaseSystem.H"
 #include "addToRunTimeSelectionTable.H"
+#include "mathematicalConstants.H"
 
 // * * * * * * * * * * * * * * Static Data Members * * * * * * * * * * * * * //
 
@@ -33,77 +34,60 @@ namespace Foam
 {
 namespace dragModels
 {
-    defineTypeNameAndDebug(myDrag, 0);
-    addToRunTimeSelectionTable(dragModel, myDrag, dictionary);
+    defineTypeNameAndDebug(solidSolidDrag, 0);
+    addToRunTimeSelectionTable(dragModel, solidSolidDrag, dictionary);
 }
 }
 
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
+
+
 Foam::tmp<Foam::volScalarField>
-Foam::dragModels::myDrag::KGasLiquid
+Foam::dragModels::solidSolidDrag::KSolidSolid
 (
     const phaseModel& gas,
-    const phaseModel& liquid
+    const phaseModel& solid1,
+    const phaseModel& solid2
 ) const
 {
-    const phaseModel& solid = gas.fluid().phases()[solidName_];
 
-    const volScalarField oneMinusGas(max(1 - gas, liquid.residualAlpha()));
-    const volScalarField cbrtR
-    (
-        cbrt(max(solid, solid.residualAlpha())/oneMinusGas)
-    );
-    const volScalarField magURel(mag(gas.U() - liquid.U()));
+    const phaseSystem& fluid = gas.fluid();
+    const volScalarField& alphag = gas;
+    const volScalarField& alphas1 = solid1;
+    const volScalarField& alphas2 = solid2;
+    const volScalarField& d1 = solid1.d();
+    const volScalarField& d2 = solid2.d();
+    const volScalarField& rho1 = solid1.rho();
+    const volScalarField& rho2 = solid2.rho();
+    const scalar Pi = constant::mathematical::pi;
+        
+    volScalarField g0 = 1.0 / alphag; 
+        
+    forAll(fluid.phases(), phasei)
+    {
+        const phaseModel& phase = fluid.phases()[phasei];
+        if (phase.incompressible())
+        {
+            const volScalarField& alphas = phase;
+    	    g0 += ( 3.0 * ( alphas / phase.d() ) * d1 * d2 ) / 
+    	    ( sqr(alphag) * ( d1 + d2 ) );
+        }
 
-    return
-        E2_*gas.thermo().mu()*sqr(oneMinusGas/solid.d())*sqr(cbrtR)
-       /max(gas, gas.residualAlpha())
-      + E2_*gas.rho()*magURel*(1 - gas)/solid.d()*cbrtR;
-}
-
-
-Foam::tmp<Foam::volScalarField>
-Foam::dragModels::myDrag::KGasSolid
-(
-    const phaseModel& gas,
-    const phaseModel& solid
-) const
-{
-    const volScalarField oneMinusGas(max(1 - gas, solid.residualAlpha()));
-    const volScalarField cbrtR
-    (
-        cbrt(max(solid, solid.residualAlpha())/oneMinusGas)
-    );
+    }  
 
     return
-        E1_*gas.thermo().mu()*sqr(oneMinusGas/solid.d())*sqr(cbrtR)
-       /max(gas, gas.residualAlpha())
-      + E2_*gas.rho()*mag(gas.U())*(1 - gas)/solid.d()*cbrtR;
-}
-
-
-Foam::tmp<Foam::volScalarField>
-Foam::dragModels::myDrag::KLiquidSolid
-(
-    const phaseModel& liquid,
-    const phaseModel& solid
-) const
-{
-    const phaseModel& gas = liquid.fluid().phases()[gasName_];
-
-    return
-        E1_*liquid.thermo().mu()
-       *sqr(max(solid, solid.residualAlpha())/solid.d())
-       /max(liquid, liquid.residualAlpha())
-      + E2_*liquid.rho()*mag(gas.U())*solid/solid.d();
+        ( 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 ) 
+        * alphas1 * rho1 * alphas2 * rho2 * sqr( d1 + d2 )
+        * g0 ) / ( 2.0 * Pi * ( rho1 * pow(alphas1, 3.0) 
+        + rho2 * pow(alphas2, 3.0) ) );
 }
 
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::dragModels::myDrag::myDrag
+Foam::dragModels::solidSolidDrag::solidSolidDrag
 (
     const dictionary& dict,
     const phaseInterface& interface,
@@ -113,39 +97,31 @@ Foam::dragModels::myDrag::myDrag
     dragModel(dict, interface, registerObject),
     interface_(interface),
     gasName_(dict.lookup("gas")),
-    liquidName_(dict.lookup("liquid")),
-    solidName_(dict.lookup("solid")),
-    E1_("E1", dimless, dict),
-    E2_("E2", dimless, dict)
+    solid1Name_(dict.lookup("solid1")),
+    solid2Name_(dict.lookup("solid2")),
+    E_("E", dimless, dict),
+    Cf_("Cf", dimless, dict)
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::dragModels::myDrag::~myDrag()
+Foam::dragModels::solidSolidDrag::~solidSolidDrag()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField>
-Foam::dragModels::myDrag::K() const
+Foam::dragModels::solidSolidDrag::K() const
 {
     const phaseModel& gas = interface_.fluid().phases()[gasName_];
-    const phaseModel& liquid = interface_.fluid().phases()[liquidName_];
-    const phaseModel& solid = interface_.fluid().phases()[solidName_];
+    const phaseModel& solid1 = interface_.fluid().phases()[solid1Name_];
+    const phaseModel& solid2 = interface_.fluid().phases()[solid2Name_];
 
-    if (interface_.contains(gas) && interface_.contains(liquid))
+    if (interface_.contains(solid1) && interface_.contains(solid2))
     {
-        return KGasLiquid(gas, liquid);
-    }
-    if (interface_.contains(gas) && interface_.contains(solid))
-    {
-        return KGasSolid(gas, solid);
-    }
-    if (interface_.contains(liquid) && interface_.contains(solid))
-    {
-        return KLiquidSolid(liquid, solid);
+        return KSolidSolid(gas, solid1, solid2);
     }
 
     FatalErrorInFunction
@@ -158,7 +134,7 @@ Foam::dragModels::myDrag::K() const
 
 
 Foam::tmp<Foam::surfaceScalarField>
-Foam::dragModels::myDrag::Kf() const
+Foam::dragModels::solidSolidDrag::Kf() const
 {
     return fvc::interpolate(K());
 }

@@ -22,7 +22,7 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::dragModels::myDrag
+    Foam::dragModels::solidSolidDrag
 
 Description
     Attou and Ferschneider's Drag model for film flow through packed beds. The
@@ -38,13 +38,14 @@ Description
     \endverbatim
 
 SourceFiles
-    myDrag.C
+    solidSolidDrag.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef myDrag_H
-#define myDrag_H
+#ifndef solidSolidDrag_H
+#define solidSolidDrag_H
 
+#include "mathematicalConstants.H"
 #include "dragModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -55,10 +56,10 @@ namespace dragModels
 {
 
 /*---------------------------------------------------------------------------*\
-                      Class myDrag Declaration
+                      Class solidSolidDrag Declaration
 \*---------------------------------------------------------------------------*/
 
-class myDrag
+class solidSolidDrag
 :
     public dragModel
 {
@@ -70,53 +71,40 @@ class myDrag
         //- Name of the gaseous phase
         const word gasName_;
 
-        //- Name of the liquidphase
-        const word liquidName_;
+        //- Name of the solid phase1
+        const word solid1Name_;
 
         //- Name of the solid phase
-        const word solidName_;
+        const word solid2Name_;
 
-        //- Ergun constant 1
-        const dimensionedScalar E1_;
+        //- Coefficient of restitution
+        const dimensionedScalar E_;
 
-        //- Ergun constant 2
-        const dimensionedScalar E2_;
+        //- Coefficient of friction
+        const dimensionedScalar Cf_;
 
 
     // Private Member Functions
 
-        //- Return the momentum transfer coefficient between gas and liquid
-        virtual tmp<volScalarField> KGasLiquid
+        //- Return the momentum transfer coefficient between solid1 and solid2
+        virtual tmp<volScalarField> KSolidSolid
         (
             const phaseModel& gas,
-            const phaseModel& liquid
-        ) const;
-
-        //- Return the momentum transfer coefficient between gas and solid
-        virtual tmp<volScalarField> KGasSolid
-        (
-            const phaseModel& gas,
-            const phaseModel& solid
-        ) const;
-
-        //- Return the momentum transfer coefficient between liquid and solid
-        virtual tmp<volScalarField> KLiquidSolid
-        (
-            const phaseModel& liquid,
-            const phaseModel& solid
+            const phaseModel& solid1,
+            const phaseModel& solid2
         ) const;
 
 
 public:
 
     //- Runtime type information
-    TypeName("myDrag");
+    TypeName("solidSolidDrag");
 
 
     // Constructors
 
         //- Construct from a dictionary and an interface
-        myDrag
+        solidSolidDrag
         (
             const dictionary& dict,
             const phaseInterface& interface,
@@ -125,7 +113,7 @@ public:
 
 
     //- Destructor
-    virtual ~myDrag();
+    virtual ~solidSolidDrag();
 
 
     // Member Functions
