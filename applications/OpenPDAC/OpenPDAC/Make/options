@@ -25,6 +25,7 @@ LIB_LIBS = \
     -lphaseSystem \
     -lmultiphaseSystems \
     -leulerianInterfacialModels \
+    -L$(FOAM_USER_LIBBIN)/myEulerianInterfacialModels \
     -leulerianInterfacialCompositionModels \
     -lmultiphaseMomentumTransportModels \
     -lmultiphaseThermophysicalTransportModels \
