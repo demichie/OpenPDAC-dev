@@ -9,7 +9,6 @@ FoamFile
 {
     format      binary;
     class       volScalarField;
-    location    "0.01";
     object      muMix;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
