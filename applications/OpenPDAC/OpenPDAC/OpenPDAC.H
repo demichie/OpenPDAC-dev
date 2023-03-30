@@ -130,7 +130,7 @@ protected:
         volScalarField muC;
 
         // mixture viscosity
-        volScalarField mu;
+        volScalarField muMix;
 
         // mixture velocity         
         volVectorField U;

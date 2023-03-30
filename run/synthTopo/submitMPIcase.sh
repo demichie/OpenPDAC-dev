@@ -1,17 +1,13 @@
 # module load openFOAM-10
 # source $FOAM_BASHRC
 
-foamCleanCase
 rm -rf constant/triSurface/*
+foamCleanCase
 
 cd preprocessing
 python3 ASCtoSTL.py
 # python createSphere.py
 cd ..
-
-cp ./system/controlDict.init ./system/controlDict
-cp ./system/fvSolution.init ./system/fvSolution
-cp ./constant/cloudProperties.init ./constant/cloudProperties
 
 blockMesh 
 checkMesh -allTopology -allGeometry
@@ -19,6 +15,10 @@ checkMesh -allTopology -allGeometry
 snappyHexMesh -overwrite
 topoSet -dict topoSetDict-conduit
 # topoSet -dict topoSetDict-sphere
+
+cp ./system/controlDict.init ./system/controlDict
+cp ./system/fvSolution.init ./system/fvSolution
+cp ./constant/cloudProperties.init ./constant/cloudProperties
 
 rm -rf 0
 cp -r org.0 0

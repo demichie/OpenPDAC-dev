@@ -19,6 +19,9 @@ changeDictionary
 # extrudeMesh
 # changeDictionary
 
+cp ./system/controlDict.init ./system/controlDict
+cp ./system/fvSolution.init ./system/fvSolution
+
 rm -rf 0
 cp -r org.0 0
 cp 0/alpha.air.init 0/alpha.air
@@ -29,8 +32,6 @@ cp 0/U.air.init 0/U.air
 cp 0/U.particles.init 0/U.particles
 
 
-cp ./system/controlDict.init ./system/controlDict
-cp ./system/fvSolution.init ./system/fvSolution
 
 #FOR PARALLEL RUN:
 #sbatch MPIJob_init.script

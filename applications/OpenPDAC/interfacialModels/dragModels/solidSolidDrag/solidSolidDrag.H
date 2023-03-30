@@ -25,17 +25,9 @@ Class
     Foam::dragModels::solidSolidDrag
 
 Description
-    Attou and Ferschneider's Drag model for film flow through packed beds. The
-    implementation follows the description of Gunjal and Ranade, who, in the
-    reference below, formulate the model in more convenient terms.
+    MFIX solid-solid drag
 
     Reference:
-    \verbatim
-        Gunjal, P. R., & Ranade, V. V. (2007).
-        Modeling of laboratory and commercial scale hydro-processing reactors
-        using CFD.
-        Chemical Engineering Science, 62(18-20), 5512-5526.
-    \endverbatim
 
 SourceFiles
     solidSolidDrag.C

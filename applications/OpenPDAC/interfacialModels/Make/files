@@ -1,3 +1,0 @@
-dragModels/solidSolidDrag/solidSolidDrag.C
-
-LIB = $(FOAM_USER_LIBBIN)/libmyEulerianInterfacialModels

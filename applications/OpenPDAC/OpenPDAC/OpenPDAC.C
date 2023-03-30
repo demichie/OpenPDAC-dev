@@ -180,17 +180,17 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     muC(phases[carrierIdx].thermo().mu()),
 
-    mu
+    muMix
     (
         IOobject
         (
-            "mu",
+            "muMix",
             runTime.name(),
             mesh,
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        muC
+        mesh
     ),
         
 
@@ -204,11 +204,11 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        fluid.U()
+        mesh
     ),
     
     // Initialize cloud
-    clouds(rho, U, mu, buoyancy.g),
+    clouds(rho, U, muMix, buoyancy.g),
     
     pressureReference
     (
@@ -242,6 +242,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
         )
     );
 
+    
     // Initialization of hydrostatic pressure profile
     hydrostaticInitialisation
     (
@@ -255,6 +256,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
         fluid,
         pimple.dict()
     );
+    
 
     // Correct mixture thermodynamics with new pressure    
     fluid.correctThermo();
@@ -293,10 +295,10 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
     
     // Mixture viscosity
-    mu = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
+    muMix = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
 
     // Compute mass-weighted mixture velocity
-    U *= 0.0;
+    U = 0.0* phases[0].U();
     forAll(phases, phasei)
     {
         phaseModel& phase = phases[phasei];
@@ -304,7 +306,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     }
 
-    Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
+    Info<< "min muMix " << min(muMix).value() << " max muMix " << max(muMix).value() << endl;
 
     clouds.info();
     
@@ -425,9 +427,10 @@ void Foam::solvers::OpenPDAC::postCorrector()
 void Foam::solvers::OpenPDAC::postSolve()
 {
     divU.clear();
-    mu = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
+    
+    muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - phases[carrierIdx] )) / 0.62 , -1.55);
     rho = fluid.rho();
-
+    
     U *= 0.0;
     forAll(phases, phasei)
     {
@@ -436,9 +439,10 @@ void Foam::solvers::OpenPDAC::postSolve()
 
     }
 
-    Info<< "min mu " << min(mu).value() << " max mu " << max(mu).value() << endl;
+    Info<< "min mu " << min(muMix).value() << " max mu " << max(muMix).value() << endl;
 
     clouds.evolve();
+    
 
     
 }

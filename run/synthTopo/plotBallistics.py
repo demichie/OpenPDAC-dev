@@ -115,8 +115,8 @@ def main():
     n_files = len(files)
     file_idx = []
     for filename in files:
-        print(filename)
-        file_idx.append(float(filename.split('_')[1].replace('.vtk','')))
+        # print(filename)
+        file_idx.append(float(filename.split('_')[1].rsplit('.', 1)[0]))
         
     times = [float(x) for x in file_idx]  
       

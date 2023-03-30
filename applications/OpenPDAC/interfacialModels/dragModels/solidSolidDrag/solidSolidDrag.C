@@ -57,31 +57,35 @@ Foam::dragModels::solidSolidDrag::KSolidSolid
     const volScalarField& alphag = gas;
     const volScalarField& alphas1 = solid1;
     const volScalarField& alphas2 = solid2;
-    const volScalarField& d1 = solid1.d();
-    const volScalarField& d2 = solid2.d();
-    const volScalarField& rho1 = solid1.rho();
-    const volScalarField& rho2 = solid2.rho();
     const scalar Pi = constant::mathematical::pi;
+    const volScalarField magURel(mag(solid1.U() - solid2.U()));
         
     volScalarField g0 = 1.0 / alphag; 
+
+    volScalarField iter_const = ( 3.0 * solid1.d() * solid2.d() ) / 
+    	    ( sqr(alphag) * ( solid1.d() + solid2.d() ) );
         
     forAll(fluid.phases(), phasei)
     {
         const phaseModel& phase = fluid.phases()[phasei];
+        
         if (phase.incompressible())
         {
             const volScalarField& alphas = phase;
-    	    g0 += ( 3.0 * ( alphas / phase.d() ) * d1 * d2 ) / 
-    	    ( sqr(alphag) * ( d1 + d2 ) );
+            volScalarField iter_term = alphas / phase.d();
+    	    g0 += iter_const * iter_term;
         }
 
     }  
+    
+    volScalarField fractNum = 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 ) 
+        * alphas1 * solid1.rho() * alphas2 * solid2.rho() * sqr( solid1.d() + solid2.d() )
+        * g0 * magURel;
+        
+    volScalarField fractDen = 2.0 * Pi * ( solid1.rho() * pow(solid1.d(), 3.0) 
+        + solid1.rho() * pow(solid2.d(), 3.0) );    
 
-    return
-        ( 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 ) 
-        * alphas1 * rho1 * alphas2 * rho2 * sqr( d1 + d2 )
-        * g0 ) / ( 2.0 * Pi * ( rho1 * pow(alphas1, 3.0) 
-        + rho2 * pow(alphas2, 3.0) ) );
+    return ( fractNum / fractDen );
 }
 
 
@@ -120,7 +124,7 @@ Foam::dragModels::solidSolidDrag::K() const
     const phaseModel& solid2 = interface_.fluid().phases()[solid2Name_];
 
     if (interface_.contains(solid1) && interface_.contains(solid2))
-    {
+    {    
         return KSolidSolid(gas, solid1, solid2);
     }
 

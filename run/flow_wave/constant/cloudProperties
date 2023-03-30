@@ -35,7 +35,7 @@ solution
     {
         rho             cell;
         U               cellPoint;
-        mu              cell;
+        muMix           cell;
     }
 
     integrationSchemes

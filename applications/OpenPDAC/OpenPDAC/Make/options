@@ -5,6 +5,7 @@ EXE_INC = \
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/include \
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/phaseSystems/lnInclude \
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/interfacialModels/lnInclude \
+    -I../interfacialModels/lnInclude \
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/interfacialCompositionModels/lnInclude \
     -I$(LIB_SRC)/physicalProperties/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
@@ -25,7 +26,6 @@ LIB_LIBS = \
     -lphaseSystem \
     -lmultiphaseSystems \
     -leulerianInterfacialModels \
-    -L$(FOAM_USER_LIBBIN)/myEulerianInterfacialModels \
     -leulerianInterfacialCompositionModels \
     -lmultiphaseMomentumTransportModels \
     -lmultiphaseThermophysicalTransportModels \
