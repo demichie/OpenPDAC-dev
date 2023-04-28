@@ -27,7 +27,7 @@ particles1
     diameterModel constant;
     constantCoeffs
     {
-        d               1e-2;
+        d               2e-4;
     }
 
     alphaMax        0.62;
@@ -41,7 +41,7 @@ particles2
     diameterModel constant;
     constantCoeffs
     {
-        d               1e-3;
+        d               2e-3;
     }
 
     alphaMax        0.62;

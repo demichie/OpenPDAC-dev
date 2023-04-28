@@ -55,6 +55,9 @@ void Foam::solvers::OpenPDAC::readControls()
     faceMomentum =
         pimple.dict().lookupOrDefault<Switch>("faceMomentum", false);
 
+    dragCorrection =
+        pimple.dict().lookupOrDefault<Switch>("dragCorrection", false);
+
     partialElimination =
         pimple.dict().lookupOrDefault<Switch>("partialElimination", false);
 
@@ -98,6 +101,11 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     faceMomentum
     (
         pimple.dict().lookupOrDefault<Switch>("faceMomentum", false)
+    ),
+
+    dragCorrection
+    (
+        pimple.dict().lookupOrDefault<Switch>("dragCorrection", false)
     ),
 
     partialElimination
@@ -158,7 +166,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     phases(fluid.phases()),
 
     phi(fluid.phi()),
-    
+
     p(phases[0].thermoRef().p()),
 
     p_rgh(buoyancy.p_rgh),
@@ -368,7 +376,7 @@ void Foam::solvers::OpenPDAC::preSolve()
     // Store divU from the previous mesh so that it can be
     // mapped and used in correctPhi to ensure the corrected phi
     // has the same divergence
-    if (correctPhi)
+    if (correctPhi || mesh.topoChanging())
     {
         // Construct and register divU for mapping
         divU = new volScalarField
@@ -384,7 +392,7 @@ void Foam::solvers::OpenPDAC::preSolve()
     fvModels().preUpdateMesh();
 
     // Update the mesh for topology change, mesh to mesh mapping
-    mesh.update();
+    mesh_.update();
 }
 
 
@@ -406,11 +414,6 @@ void Foam::solvers::OpenPDAC::prePredictor()
     {
         fluid.predictMomentumTransport();
     }
-
-    if (pimple.thermophysics())
-    {
-        compositionPredictor();
-    }
 }
 
 
@@ -428,6 +431,7 @@ void Foam::solvers::OpenPDAC::postSolve()
 {
     divU.clear();
     
+    
     muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - phases[carrierIdx] )) / 0.62 , -1.55);
     rho = fluid.rho();
     
@@ -442,9 +446,7 @@ void Foam::solvers::OpenPDAC::postSolve()
     Info<< "min mu " << min(muMix).value() << " max mu " << max(muMix).value() << endl;
 
     clouds.evolve();
-    
-
-    
+        
 }
 
 

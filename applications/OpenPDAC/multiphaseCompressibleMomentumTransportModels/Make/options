@@ -1,13 +1,12 @@
 EXE_INC = \
-    -I$(LIB_SRC)/lagrangian/basic/lnInclude \
-    -I$(LIB_SRC)/lagrangian/parcel/lnInclude \
-    -I$(FOAM_SOLVERS)/modules/fluidSolver/lnInclude \
-    -I../include \
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/phaseSystems/lnInclude \
-    -I$(FOAM_SOLVERS)/modules/multiphaseEuler/interfacialModels/lnInclude \
+    -I$(FOAM_SOLVERS)/modules/multiphaseEuler/interfacialModels/lnInclude\
     -I$(FOAM_SOLVERS)/modules/multiphaseEuler/interfacialCompositionModels/lnInclude \
     -I$(LIB_SRC)/physicalProperties/lnInclude \
     -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/specie/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/multicomponentThermo/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/saturationModels/lnInclude \
     -I$(LIB_SRC)/twoPhaseModels/twoPhaseMixture/lnInclude \
     -I$(LIB_SRC)/twoPhaseModels/compressibleTwoPhases/lnInclude \
     -I$(LIB_SRC)/MomentumTransportModels/momentumTransportModels/lnInclude \
@@ -18,20 +17,7 @@ EXE_INC = \
     -I$(LIB_SRC)/sampling/lnInclude
 
 LIB_LIBS = \
-    -llagrangian \
-    -llagrangianParcel \
-    -llagrangianParcelTurbulence \
-    -lfluidSolver \
     -lphaseSystem \
-    -lmultiphaseSystems \
     -leulerianInterfacialModels \
     -leulerianInterfacialCompositionModels \
-    -lmultiphaseThermophysicalTransportModels \
-    -lmultiphaseReactions \
-    -lmultiphaseProperties \
-    -lphaseFluidThermophysicalTransportModels \
-    -lphaseFluidMulticomponentThermophysicalTransportModels \
-    -lfiniteVolume \
-    -lfvModels \
-    -lfvConstraints \
-    -lmeshTools
+    -lphaseCompressibleMomentumTransportModels
