@@ -1,10 +1,6 @@
 HeatTransferPhaseSystem/heatTransferPhaseSystem.C
 TwoResistanceHeatTransferPhaseSystem/twoResistanceHeatTransferPhaseSystem.C
 
-diameterModels/IATE/IATEsources/wallBoiling/IATEwallBoiling.C
-
-populationBalanceModel/nucleationModels/wallBoiling/wallBoiling.C
-
 heatTransferModels/wallBoiling/wallBoilingHeatTransfer.C
 
 wallBoilingSubModels/partitioningModels/partitioningModel/partitioningModel.C

@@ -30,7 +30,6 @@ License
 #include "PhaseTransferPhaseSystem.H"
 #include "InterfaceCompositionPhaseChangePhaseSystem.H"
 #include "ThermalPhaseChangePhaseSystem.H"
-#include "PopulationBalancePhaseSystem.H"
 #include "addToRunTimeSelectionTable.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
@@ -95,75 +94,6 @@ namespace Foam
         thermalPhaseChangeMultiphaseSystem,
         dictionary,
         thermalPhaseChangeMultiphaseSystem
-    );
-
-    typedef
-        PopulationBalancePhaseSystem
-        <
-            PhaseTransferPhaseSystem
-            <
-                OneResistanceHeatTransferPhaseSystem
-                <
-                    MomentumTransferPhaseSystem<phaseSystem>
-                >
-            >
-        >
-        populationBalanceMultiphaseSystem;
-
-    addNamedToRunTimeSelectionTable
-    (
-        phaseSystem,
-        populationBalanceMultiphaseSystem,
-        dictionary,
-        populationBalanceMultiphaseSystem
-    );
-
-    typedef
-        InterfaceCompositionPhaseChangePhaseSystem
-        <
-            PopulationBalancePhaseSystem
-            <
-                PhaseTransferPhaseSystem
-                <
-                    TwoResistanceHeatTransferPhaseSystem
-                    <
-                        MomentumTransferPhaseSystem<phaseSystem>
-                    >
-                >
-            >
-        >
-        interfaceCompositionPhaseChangePopulationBalanceMultiphaseSystem;
-
-    addNamedToRunTimeSelectionTable
-    (
-        phaseSystem,
-        interfaceCompositionPhaseChangePopulationBalanceMultiphaseSystem,
-        dictionary,
-        interfaceCompositionPhaseChangePopulationBalanceMultiphaseSystem
-    );
-
-    typedef
-        ThermalPhaseChangePhaseSystem
-        <
-            PopulationBalancePhaseSystem
-            <
-                PhaseTransferPhaseSystem
-                <
-                    TwoResistanceHeatTransferPhaseSystem
-                    <
-                        MomentumTransferPhaseSystem<phaseSystem>
-                    >
-                >
-            >
-        >
-        thermalPhaseChangePopulationBalanceMultiphaseSystem;
-
-    addNamedToRunTimeSelectionTable
-    (
-        phaseSystem,
-        thermalPhaseChangePopulationBalanceMultiphaseSystem,
-        dictionary,
-        thermalPhaseChangePopulationBalanceMultiphaseSystem
     );
 }
 
