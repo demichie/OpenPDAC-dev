@@ -57,9 +57,4 @@ functions
     #includeFunc fieldAverage(U.particles, U.air, alpha.particles, p)
 }
 
-libs
- (
- "libSolidSolidDragModel.so"
- );
-
 // ************************************************************************* //
