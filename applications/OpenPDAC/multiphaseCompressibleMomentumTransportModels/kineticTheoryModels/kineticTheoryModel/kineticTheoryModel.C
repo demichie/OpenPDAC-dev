@@ -446,6 +446,8 @@ void Foam::RASModels::kineticTheoryModel::correct()
 
     volScalarField alphas = phase_;
     
+    volScalarField alphasMax = fluid.alfasMax();
+    
     alphas *=0;
         
     forAll(fluid.phases(), phasei)

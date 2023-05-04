@@ -473,6 +473,9 @@ public:
             //- Return the mixture density
             tmp<volScalarField> rho() const;
 
+            //- Return the maximum packing
+            tmp<volScalarField> alfasMax() const;
+
             //- Return the mixture velocity
             tmp<volVectorField> U() const;
 

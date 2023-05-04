@@ -374,6 +374,87 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::rho() const
     }
 }
 
+Foam::tmp<Foam::volScalarField> Foam::phaseSystem::alfasMax() const
+{
+    volScalarField alfasMax(0.0*movingPhaseModels_[0]);
+    alfasMax += 1.0;
+
+    volScalarField alphas = movingPhaseModels_[0];
+
+    volScalarField den(0.0*movingPhaseModels_[0]); 
+    volScalarField cxi(0.0*movingPhaseModels_[0]); 
+    volScalarField Xij(0.0*movingPhaseModels_[0]); 
+    volScalarField pij(0.0*movingPhaseModels_[0]); 
+    volScalarField rij(0.0*movingPhaseModels_[0]); 
+
+    
+    alphas *=0;
+        
+    forAll(phaseModels_, phasei)
+    {
+        const phaseModel& phase = phaseModels_[phasei];
+        
+        if (phase.incompressible())
+        {
+            const volScalarField& alphai = phase;
+            alphas += max(alphai,scalar(0));
+        }
+    }
+    
+    forAll(phaseModels_, phasei)
+    {
+        if (phaseModels_[phasei].incompressible())
+    
+        {
+            den *= 0.0;
+
+            forAll(phaseModels_, phasej)
+            {
+                if (phaseModels_[phasej].incompressible())
+                {
+                    volScalarField di = phaseModels_[phasei].d();
+                    volScalarField dj = phaseModels_[phasej].d();
+                    rij = pos0(di-dj)*dj/di + neg(di-dj)*di/dj;
+
+                    pij = phaseModels_[phasei].alphaMax();
+
+                    pij += neg(rij-0.741)* ( phaseModels_[phasei].alphaMax()*
+                          (1-phaseModels_[phasei].alphaMax())*
+                          (1-2.35*rij+1.35*sqr(rij)) );
+
+                    Xij = ( 1.0 - sqr(rij) )/(2.0-phaseModels_[phasei].alphaMax());
+
+                    Xij = pos0(dj-di)*Xij + neg(dj-di)*(1.0-Xij);
+
+                    cxi = phaseModels_[phasei] / max(alphas,1e-10);   
+                    
+                    if (phasej==phasei)
+                    {
+                        den += scalar(1.0);
+                    }
+                    else
+                    {
+                        den -= (1-phaseModels_[phasei].alphaMax()/pij)*cxi/Xij;
+                    } 
+                    
+                }
+            }
+            volScalarField alfasMaxi = phaseModels_[phasei].alphaMax()/den;
+            Info<< phasei << "min alfasMaxi " << min(alfasMaxi).value() <<
+                   " max alfasMaxi " << max(alfasMaxi).value() << endl;
+                    
+            alfasMax = min(alfasMax,alfasMaxi);
+        }
+    }
+
+    Info<< "QUI ******* min alphasMax " << min(alfasMax).value() << endl;
+    Info<< "QUI ******* max alphasMax " << max(alfasMax).value() << endl;
+    
+
+
+    return 1.0*alfasMax;
+}
+
 
 Foam::tmp<Foam::volVectorField> Foam::phaseSystem::U() const
 {
