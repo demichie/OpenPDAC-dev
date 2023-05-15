@@ -68,9 +68,9 @@ subModels
             type            patchInjection;
             parcelBasisType fixed;
             patchName       inlet;
-            U0              (10 0 0);
+            U0              (0 -50 0);
             nParticle       1;
-            parcelsPerSecond 100;
+            parcelsPerSecond 1000;
             sizeDistribution
             {
                 type        normal;
