@@ -5,10 +5,12 @@ rm -rf constant/triSurface/*
 foamCleanCase
 
 cd preprocessing
+unzip synthDEM.zip
 python3 ASCtoSTL.py
 # python createSphere.py
 cd ..
 
+cp ./system/controlDict.init ./system/controlDict
 blockMesh 
 checkMesh -allTopology -allGeometry
 
@@ -16,7 +18,6 @@ snappyHexMesh -overwrite
 topoSet -dict topoSetDict-conduit
 # topoSet -dict topoSetDict-sphere
 
-cp ./system/controlDict.init ./system/controlDict
 cp ./system/fvSolution.init ./system/fvSolution
 cp ./constant/cloudProperties.init ./constant/cloudProperties
 

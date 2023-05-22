@@ -159,15 +159,15 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     buoyancy(mesh),
 
-    fluidPtr(phaseSystem::New(mesh)),
+    fluidPtr_(phaseSystem::New(mesh)),
 
-    fluid(fluidPtr()),
+    fluid_(fluidPtr_()),
 
-    phases(fluid.phases()),
+    phases_(fluid_.phases()),
 
-    phi(fluid.phi()),
+    phi_(fluid_.phi()),
 
-    p(phases[0].thermoRef().p()),
+    p_(phases_[0].thermoRef().p()),
 
     p_rgh(buoyancy.p_rgh),
 
@@ -181,12 +181,12 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
             IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
-        fluid.rho()
+        fluid_.rho()
     ),
     
     carrierIdx(0),
 
-    muC(phases[carrierIdx].thermo().mu()),
+    muC(phases_[carrierIdx].thermo().mu()),
 
     muMix
     (
@@ -220,13 +220,18 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     
     pressureReference
     (
-        p,
+        p_,
         p_rgh,
         pimple.dict(),
-        fluid.incompressible()
+        fluid_.incompressible()
     ),
 
-    MRF(fluid.MRF())
+    MRF(fluid_.MRF()),
+
+    fluid(fluid_),
+    phases(phases_),
+    p(p_),
+    phi(phi_)    
 {
     // Read the controls
     readControls();
@@ -256,24 +261,24 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     (
         p_rgh,
         ph_rgh,
-        p,
+        p_,
         buoyancy.g,
         buoyancy.hRef,
         buoyancy.gh,
         buoyancy.ghf,
-        fluid,
+        fluid_,
         pimple.dict()
     );
     
 
     // Correct mixture thermodynamics with new pressure    
-    fluid.correctThermo();
-    rho = fluid.rho();
+    fluid_.correctThermo();
+    rho = fluid_.rho();
 
     Info << "hRef " << buoyancy.hRef.value() << endl;
 
-    Info<< "min p " << min(p).value() <<
-  	               " max p " << max(p).value() << endl;
+    Info<< "min p " << min(p_).value() <<
+  	               " max p " << max(p_).value() << endl;
     Info<< "min p_rgh " << min(p_rgh).value() <<
    	               " max p_rgh " << max(p_rgh).value() << endl;
     Info<< "min rho " << min(rho).value() <<
@@ -282,9 +287,9 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     // Search for carrier phase
     carrierIdx = 0;
 
-    forAll(phases, phasei)
+    forAll(phases_, phasei)
     {
-        phaseModel& phase = phases[phasei];
+        phaseModel& phase = phases_[phasei];
         if (!phase.incompressible())
         {
     	    Info << phasei << " compressible" << endl;
@@ -298,18 +303,18 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     }
 
     // Carrier phase viscosity
-    muC = phases[carrierIdx].thermo().mu();
+    muC = phases_[carrierIdx].thermo().mu();
 
     Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
     
     // Mixture viscosity
-    muMix = muC * pow( 1.0 - ( 1.0 - phases[carrierIdx] ) / 0.62 , -1.55);
+    muMix = muC * pow( 1.0 - ( 1.0 - phases_[carrierIdx] ) / 0.62 , -1.55);
 
     // Compute mass-weighted mixture velocity
-    U = 0.0* phases[0].U();
-    forAll(phases, phasei)
+    U = 0.0* phases_[0].U();
+    forAll(phases_, phasei)
     {
-        phaseModel& phase = phases[phasei];
+        phaseModel& phase = phases_[phasei];
         U += phase * phase.rho() * phase.U() / rho;
 
     }
@@ -405,14 +410,14 @@ void Foam::solvers::OpenPDAC::prePredictor()
 
     if (pimple.thermophysics() || pimple.flow())
     {
-        fluid.solve(rAUs, rAUfs);
-        fluid.correct();
-        fluid.correctContinuityError();
+        fluid_.solve(rAUs, rAUfs);
+        fluid_.correct();
+        fluid_.correctContinuityError();
     }
 
     if (pimple.flow() && pimple.predictTransport())
     {
-        fluid.predictMomentumTransport();
+        fluid_.predictMomentumTransport();
     }
 }
 
@@ -421,8 +426,8 @@ void Foam::solvers::OpenPDAC::postCorrector()
 {
     if (pimple.flow() && pimple.correctTransport())
     {
-        fluid.correctMomentumTransport();
-        fluid.correctThermophysicalTransport();
+        fluid_.correctMomentumTransport();
+        fluid_.correctThermophysicalTransport();
     }
 }
 
@@ -433,12 +438,12 @@ void Foam::solvers::OpenPDAC::postSolve()
     
     
     muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - phases[carrierIdx] )) / 0.62 , -1.55);
-    rho = fluid.rho();
+    rho = fluid_.rho();
     
     U *= 0.0;
-    forAll(phases, phasei)
+    forAll(phases_, phasei)
     {
-        phaseModel& phase = phases[phasei];
+        phaseModel& phase = phases_[phasei];
         U += phase * phase.rho() * phase.U() / rho;
 
     }

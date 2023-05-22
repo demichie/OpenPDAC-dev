@@ -113,6 +113,7 @@ subModels
         model3
         {
             type cellZoneInjection;
+            uniformParcelSize nParticle;
             cellZone conduit; // Name of cellZone
             SOI 0.0; // Start Of Injection
             parcelBasisType fixed; // How are the number of particles calculated
@@ -134,6 +135,7 @@ subModels
         model4
         {
             type cellZoneInjection;
+            uniformParcelSize nParticle;
             cellZone conduit; // Name of cellZone
             SOI 0.0; // Start Of Injection
             parcelBasisType fixed; // How are the number of particles calculated

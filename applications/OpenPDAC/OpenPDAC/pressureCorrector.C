@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2022-2023 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -40,7 +40,7 @@ void Foam::solvers::OpenPDAC::pressureCorrector()
             cellPressureCorrector();
         }
 
-        fluid.correctKinematics();
+        fluid_.correctKinematics();
     }
     else
     {
@@ -49,9 +49,9 @@ void Foam::solvers::OpenPDAC::pressureCorrector()
             compressibilityEqns(fluid.dmdts(), fluid.d2mdtdps())
         );
 
-        forAll(phases, phasei)
+        forAll(phases_, phasei)
         {
-            phases[phasei].divU(-pEqnComps[phasei] & p_rgh);
+            phases_[phasei].divU(-pEqnComps[phasei] & p_rgh);
         }
     }
 }

@@ -66,21 +66,20 @@ subModels
         model1
         {
             type            patchInjection;
+            uniformParcelSize nParticle;
             parcelBasisType fixed;
             patchName       inlet;
             U0              (0 -50 0);
             nParticle       1;
-            parcelsPerSecond 1000;
+            parcelsPerSecond 100;
             sizeDistribution
             {
                 type        normal;
-                normalDistribution
-                {
-                    expectation 500e-6;
-                    variance 300e-6;
-                    minValue 1e-6;
-                    maxValue 1000e-6;
-                }
+                Q 			0;
+                min 		1e-6;
+                max			1000e-6;
+                mu			500e-6; 
+                sigma		300e-6;
             }
             flowRateProfile constant 1;
             massTotal       0;

@@ -32,6 +32,8 @@ void Foam::solvers::OpenPDAC::cellMomentumPredictor()
 {
     Info<< "Constructing momentum equations" << endl;
 
+    phaseSystem& fluid(fluid_);
+
     autoPtr<phaseSystem::momentumTransferTable>
         momentumTransferPtr(fluid.momentumTransfer());
 
@@ -72,6 +74,8 @@ void Foam::solvers::OpenPDAC::cellMomentumPredictor()
 void Foam::solvers::OpenPDAC::faceMomentumPredictor()
 {
     Info<< "Constructing face momentum equations" << endl;
+
+    phaseSystem& fluid(fluid_);
 
     autoPtr<phaseSystem::momentumTransferTable>
         momentumTransferPtr(fluid.momentumTransferf());
