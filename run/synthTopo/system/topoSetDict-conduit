@@ -16,18 +16,47 @@ FoamFile
 actions
 (
     {
+        name    total;
+        type    cellSet;
+        action  new;
+        source surfaceToCell;
+        sourceInfo
+        {
+            file            "./constant/triSurface/surface_total_closed.stl";
+            useSurfaceOrientation true;
+            outsidePoints   ((0 0 2000));
+            includeCut      false;
+            includeInside   true;
+            includeOutside  false;
+            nearDistance    3;
+            curvature       -100;
+        }
+    }
+    {
+        name    total;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        sourceInfo
+        {
+           set  total;
+        }
+    }    
+
+    {
         name    conduit;
         type    cellSet;
         action  new;
         source surfaceToCell;
         sourceInfo
         {
-            file            "./constant/triSurface/surface_in_closed.stl";
+            file            "./constant/triSurface/surface_conduit_closed.stl";
+            useSurfaceOrientation true;
             outsidePoints   ((0 0 2000));
-            includeCut      true;
+            includeCut      false;
             includeInside   true;
             includeOutside  false;
-            nearDistance    0;
+            nearDistance    -1;
             curvature       -100;
         }
     }
@@ -42,6 +71,63 @@ actions
         }
     }    
     
+
+    {
+        name    crater;
+        type    cellSet;
+        action  new;
+        source surfaceToCell;
+        sourceInfo
+        {
+            file            "./constant/triSurface/surface_crater_closed.stl";
+            useSurfaceOrientation true;
+            outsidePoints   ((0 0 2000));
+            includeCut      false;
+            includeInside   true;
+            includeOutside  false;
+            nearDistance    3;
+            curvature       -100;
+        }
+    }
+    {
+        name    crater;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        sourceInfo
+        {
+           set  crater;
+        }
+    }    
+
+    {
+        name    lagrangian;
+        type    cellSet;
+        action  new;
+        source surfaceToCell;
+        sourceInfo
+        {
+            file            "./constant/triSurface/surface_lagrangian.stl";
+            useSurfaceOrientation true;
+            outsidePoints   ((0 0 2000));
+            includeCut      false;
+            includeInside   true;
+            includeOutside  false;
+            nearDistance    0;
+            curvature       -100;
+        }
+    }
+    {
+        name    lagrangian;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        sourceInfo
+        {
+           set  lagrangian;
+        }
+    }    
+
 );
 
 // ************************************************************************* //

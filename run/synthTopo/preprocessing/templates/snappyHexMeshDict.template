@@ -39,13 +39,13 @@ geometry
         name crater;
     }
     
-    /*
-    sphere.stl
+    
+    surface_conduit_closed.stl
       {
         type triSurfaceMesh;
         name sphere;
       }
-    */  
+      
       
 
     /*refinementBox
@@ -169,16 +169,16 @@ castellatedMeshControls
     // - outside. Same but cells outside.
 
 
-    /*
+    
     refinementRegions
     {
-        sphere
+        conduit
         {
             mode inside;
-            levels ((1E15 4));
+            levels ((1E15 5));
         }
     }
-    */
+    
 
 
     // Mesh selection

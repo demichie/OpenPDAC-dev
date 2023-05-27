@@ -48,6 +48,13 @@ name sphere;
 */
 
 
+surface_conduit_closed.stl
+{
+type triSurfaceMesh;
+name conduit;
+}
+
+
 /*refinementBox
 {
 type searchableBox;
@@ -169,16 +176,16 @@ resolveFeatureAngle 40;
 // - outside. Same but cells outside.
 
 
-/*
+
 refinementRegions
 {
-sphere
+conduit
 {
 mode inside;
-levels ((1E15 4));
+levels ((1E15 5));
 }
 }
-*/
+
 
 
 // Mesh selection

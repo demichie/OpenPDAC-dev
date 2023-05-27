@@ -27,6 +27,7 @@ defaultFieldValues
 
 regions
 (
+
 	zoneToCell
 	{
 		zone "conduit";
@@ -41,6 +42,7 @@ regions
             volScalarFieldValue T.particles 633.0
 		);
 	}
+
     /*
 	zoneToCell
 	{
