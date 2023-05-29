@@ -28,22 +28,30 @@ addLayers       true;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {
-    surface_out.stl
+    surface.stl
     {
         type triSurfaceMesh;
         name terrain;
     }
-    surface_in.stl
+
+    surface_out.stl
     {
         type triSurfaceMesh;
-        name crater;
+        name terrain_out;
     }
+
     
+    surface_crater_closed.stl
+      {
+        type triSurfaceMesh;
+        name crater;
+      }
+
     
     surface_conduit_closed.stl
       {
         type triSurfaceMesh;
-        name sphere;
+        name conduit;
       }
       
       
@@ -136,19 +144,6 @@ castellatedMeshControls
                 inGroups (motorBikeGroup);
             }*/
         }
-        crater
-        {
-            // Surface-wise min and max refinement level
-            level (4 4);
-
-            // Optional specification of patch type (default is wall). No
-            // constraint types (cyclic, symmetry) etc. are allowed.
-            /*patchInfo
-            {
-                type wall;
-                inGroups (motorBikeGroup);
-            }*/
-        }
     }
 
     // Resolve sharp angles
@@ -172,10 +167,15 @@ castellatedMeshControls
     
     refinementRegions
     {
+        crater
+        {
+            mode inside;
+            levels ((1E15 6));
+        }
         conduit
         {
             mode inside;
-            levels ((1E15 5));
+            levels ((1E15 6));
         }
     }
     
@@ -248,11 +248,7 @@ addLayersControls
     // Per final patch (so not geometry!) the layer information
     layers
     {
-        "(terrain).*"
-        {
-            nSurfaceLayers 2;
-        }
-        "(crater).*"
+        "(terrain_out).*"
         {
             nSurfaceLayers 2;
         }
