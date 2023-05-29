@@ -13,3 +13,5 @@ Three test cases are provided:
 - a 3D explosion simulation with a synthetic topography;
 - a 2D dilute flow over a wavy surface;
 - a 2D fluidezed bed with two solid phases.
+
+This version is based on openfoam-dev_20230516_amd64.deb
