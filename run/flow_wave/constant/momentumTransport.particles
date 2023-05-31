@@ -19,25 +19,26 @@ simulationType  laminar;
 
 RAS
 {
-    model    phasePressure;
+    model    kineticTheory;
 
     turbulence      on;
     printCoeffs     on;
 
     kineticTheoryCoeffs
     {
+        multiParticles          off;
+        continuousPhase         air;
         equilibrium             off;
 
         e                       0.8;
-        alphaMax                0.62;
         alphaMinFriction        0.5;
         residualAlpha           1e-4;
 
-        viscosityModel          Gidaspow;
-        conductivityModel       Gidaspow;
-        granularPressureModel   Lun;
-        frictionalStressModel   JohnsonJackson;
-        radialModel             SinclairJackson;
+        granularViscosityModel      Gidaspow;
+        granularConductivityModel   Gidaspow;
+        granularPressureModel       Lun;
+        frictionalStressModel       JohnsonJacksonSchaeffer;
+        radialModel                 SinclairJackson;
 
         JohnsonJacksonSchaefferCoeffs
         {
@@ -45,17 +46,10 @@ RAS
             eta                     2;
             p                       5;
             phi                     28.5;
-            alphaDeltaMin           0.05;
+            alphaDeltaMin           0.01;
         }
     }
 
-    phasePressureCoeffs
-    {
-        preAlphaExp     500;
-        expMax          1000;
-        alphaMax        0.62;
-        g0              1000;
-    }
 }
 
 

@@ -439,16 +439,15 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::alfasMax() const
                     
                 }
             }
-            volScalarField alfasMaxi = phaseModels_[phasei].alphaMax()/den;
-            Info<< phasei << "min alfasMaxi " << min(alfasMaxi).value() <<
-                   " max alfasMaxi " << max(alfasMaxi).value() << endl;
+            volScalarField alfasMaxi = phaseModels_[phasei].alphaMax()*max(1.0,1.0/den);
+            // Info<< phasei << "min alfasMaxi " << min(alfasMaxi).value() <<
+            //       " max alfasMaxi " << max(alfasMaxi).value() << endl;
                     
             alfasMax = min(alfasMax,alfasMaxi);
         }
     }
 
-    Info<< "QUI ******* min alphasMax " << min(alfasMax).value() << endl;
-    Info<< "QUI ******* max alphasMax " << max(alfasMax).value() << endl;
+    Info<< "alphasMax, min, max = " << min(alfasMax).value() << " " << max(alfasMax).value() << endl;
     
 
 

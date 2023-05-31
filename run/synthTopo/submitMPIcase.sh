@@ -9,6 +9,9 @@ unzip synthDEM.zip
 python3 ASCtoSTL.py
 # python createSphere.py
 cd ..
+surfaceCheck constant/triSurface/surface_crater_closed.stl
+surfaceCheck constant/triSurface/surface_conduit_closed.stl
+surfaceCheck constant/triSurface/surface_total_closed.stl
 
 cp ./system/controlDict.init ./system/controlDict
 blockMesh 

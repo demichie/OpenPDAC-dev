@@ -71,11 +71,12 @@ Foam::tmp<Foam::volScalarField>
 Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
 (
     const volScalarField& alpha,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
-    return 1.0/(1 - cbrt(min(alpha, alphaMinFriction)/alphaMax));
+    return 1.0/(1 - cbrt(min(alpha, alphaMinFriction)/alphasMax));
 }
 
 
@@ -83,16 +84,17 @@ Foam::tmp<Foam::volScalarField>
 Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
 (
     const volScalarField& alpha,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
     volScalarField aByaMax
     (
-        cbrt(min(max(alpha, scalar(1e-3)), alphaMinFriction)/alphaMax)
+        cbrt(min(max(alpha, scalar(1e-3)), alphaMinFriction)/alphasMax)
     );
 
-    return (1.0/(3*alphaMax))/sqr(aByaMax - sqr(aByaMax));
+    return (1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));
 }
 
 
@@ -101,8 +103,9 @@ Foam::PtrList<Foam::volScalarField>
 Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
 (
     const phaseModel& phasei,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
     const volScalarField& alphai = phasei;
@@ -112,29 +115,29 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
     PtrList<volScalarField> g0_mm(fluid.phases().size());
     PtrList<volScalarField> g0_im(fluid.phases().size());
     
-    volScalarField alphas = alphai;
     volScalarField const_sum = alphai/phasei.d();
 
     forAll(fluid.phases(), phaseIdx)
     {
         const phaseModel& phase = fluid.phases()[phaseIdx];
         
-        if (phase.incompressible() and !(phaseIdx==indexi))
+        if ((&phase != &continuousPhase) and !(phaseIdx==indexi))
         {
-    	    alphas += phase;
-            const volScalarField& alpha = phase;
+    	    const volScalarField& alpha = phase;
             const_sum += alpha / phase.d();
         }
 
     } 
     
-    volScalarField g0 = 1.0/(1 - cbrt(min(alphas, alphaMinFriction)/alphaMax)); 
+    volScalarField alphas = 1.0 - continuousPhase;
+
+    volScalarField g0 = 1.0/(1 - cbrt(min(alphas, alphaMinFriction)/alphasMax)); 
 
     forAll(fluid.phases(), phaseIdx)
     {
         const phaseModel& phase = fluid.phases()[phaseIdx];
         
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
             g0_mm.set
             (
@@ -153,9 +156,8 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
     {
         const phaseModel& phase = fluid.phases()[iter];
 
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
-            volScalarField alpha = phase;
             g0_im.set
             (
             	iter,
@@ -177,8 +179,9 @@ Foam::PtrList<Foam::volScalarField>
 Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
 (
     const phaseModel& phasei,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
     const volScalarField& alphai = phasei;
@@ -188,34 +191,34 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
     PtrList<volScalarField> g0prime_mm(fluid.phases().size());
     PtrList<volScalarField> g0prime_im(fluid.phases().size());
     
-    volScalarField alphas = alphai;
     volScalarField const_sum = alphai/phasei.d();
 
     forAll(fluid.phases(), phaseIdx)
     {
         const phaseModel& phase = fluid.phases()[phaseIdx];
         
-        if (phase.incompressible() and !(phaseIdx==indexi))
+        if ((&phase != &continuousPhase) and !(phaseIdx==indexi))
         {
-    	    alphas += phase;
-            const volScalarField& alpha = phase;
+    	    const volScalarField& alpha = phase;
             const_sum += alpha / phase.d();
         }
 
     } 
 
+    volScalarField alphas = 1.0 - continuousPhase;
+
     volScalarField aByaMax
     (
-        cbrt(min(max(alphas, scalar(1e-3)), alphaMinFriction)/alphaMax)
+        cbrt(min(max(alphas, scalar(1e-3)), alphaMinFriction)/alphasMax)
     );
     
-    volScalarField g0prime = (1.0/(3*alphaMax))/sqr(aByaMax - sqr(aByaMax));
+    volScalarField g0prime = (1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));
 
     forAll(fluid.phases(), phaseIdx)
     {
         const phaseModel& phase = fluid.phases()[phaseIdx];
         
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
             g0prime_mm.set
             (
@@ -234,10 +237,8 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
     {
         const phaseModel& phase = fluid.phases()[iter];
 
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
-            volScalarField alpha = phase;
-            
             g0prime_im.set
             (
             	iter,

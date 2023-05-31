@@ -76,32 +76,16 @@ Foam::kineticTheoryModels::frictionalStressModels::Schaeffer::
 frictionalPressure
 (
     const phaseModel& phase,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
-    // const volScalarField& alpha = phase;
-
-    volScalarField alpha = phase;
-    const phaseSystem& fluid = phase.fluid();
-    
-    alpha *=0;
-        
-    forAll(fluid.phases(), phasei)
-    {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (phase.incompressible())
-        {
-            const volScalarField& alphas = phase;
-            alpha += alphas;
-        }
-        
-    } 
+    const volScalarField alphas = 1.0 - continuousPhase;
 
     return
         dimensionedScalar(dimensionSet(1, -1, -2, 0, 0), 1e24)
-       *pow(Foam::max(alpha - alphaMinFriction, scalar(0)), 10.0);
+       *pow(Foam::max(alphas - alphaMinFriction, scalar(0)), 10.0);
 }
 
 
@@ -110,30 +94,16 @@ Foam::kineticTheoryModels::frictionalStressModels::Schaeffer::
 frictionalPressurePrime
 (
     const phaseModel& phase,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
-    // const volScalarField& alpha = phase;
-    volScalarField alpha = phase;
-    const phaseSystem& fluid = phase.fluid();
-    
-    alpha *=0;
-        
-    forAll(fluid.phases(), phasei)
-    {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (phase.incompressible())
-        {
-            const volScalarField& alphas = phase;
-            alpha += alphas;
-        }
-        
-    } 
+    const volScalarField alphas = 1.0 - continuousPhase;
+
     return
         dimensionedScalar(dimensionSet(1, -1, -2, 0, 0), 1e25)
-       *pow(Foam::max(alpha - alphaMinFriction, scalar(0)), 9.0);
+       *pow(Foam::max(alphas - alphaMinFriction, scalar(0)), 9.0);
 }
 
 
@@ -141,13 +111,14 @@ Foam::tmp<Foam::volScalarField>
 Foam::kineticTheoryModels::frictionalStressModels::Schaeffer::nu
 (
     const phaseModel& phase,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax,
+    const volScalarField& alphasMax,
     const volScalarField& pf,
     const volSymmTensorField& D
 ) const
 {
-    const volScalarField& alpha = phase;
+    const volScalarField alphas = 1.0 - continuousPhase;
 
     tmp<volScalarField> tnu
     (
@@ -167,7 +138,7 @@ Foam::kineticTheoryModels::frictionalStressModels::Schaeffer::nu
 
     forAll(D, celli)
     {
-        if (alpha[celli] > alphaMinFriction.value())
+        if (alphas[celli] > alphaMinFriction.value())
         {
             nuf[celli] =
                 0.5*pf[celli]*sin(phi_.value())

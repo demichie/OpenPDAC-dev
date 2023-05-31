@@ -25,6 +25,7 @@ RAS
 
     kineticTheoryCoeffs
     {
+        multiParticles          on;
         continuousPhase         air;
         equilibrium             off;
 

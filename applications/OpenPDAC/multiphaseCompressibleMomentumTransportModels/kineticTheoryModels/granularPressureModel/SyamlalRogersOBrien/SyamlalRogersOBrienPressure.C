@@ -74,6 +74,7 @@ Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
 granularPressureCoeff
 (
     const volScalarField& alpha1,
+    const phaseModel& continuousPhase,
     const volScalarField& g0,
     const volScalarField& rho1,
     const dimensionedScalar& e
@@ -89,6 +90,7 @@ Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
 granularPressureCoeffPrime
 (
     const volScalarField& alpha1,
+    const phaseModel& continuousPhase,
     const volScalarField& g0,
     const volScalarField& g0prime,
     const volScalarField& rho1,
@@ -103,6 +105,7 @@ Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
 granularPressureCoeff
 (
     const phaseModel& phase1,
+    const phaseModel& continuousPhase,
     const PtrList<volScalarField>& g0_im,
     const volScalarField& rho1,
     const dimensionedScalar& e
@@ -119,7 +122,7 @@ granularPressureCoeff
     {
         const phaseModel& phase = fluid.phases()[phasei];
         
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
             const volScalarField& alpha = phase;
 	
@@ -138,6 +141,7 @@ Foam::kineticTheoryModels::granularPressureModels::SyamlalRogersOBrien::
 granularPressureCoeffPrime
 (
     const phaseModel& phase1,
+    const phaseModel& continuousPhase,
     const PtrList<volScalarField>& g0_im,
     const PtrList<volScalarField>& g0prime_im,
     const volScalarField& rho1,
@@ -156,7 +160,7 @@ granularPressureCoeffPrime
     {
         const phaseModel& phase = fluid.phases()[phasei];
         
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
             const volScalarField& alpha = phase;
 	
@@ -169,7 +173,7 @@ granularPressureCoeffPrime
     {
         const phaseModel& phase = fluid.phases()[phasei];
         
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
             const volScalarField& alpha = phase;
 	

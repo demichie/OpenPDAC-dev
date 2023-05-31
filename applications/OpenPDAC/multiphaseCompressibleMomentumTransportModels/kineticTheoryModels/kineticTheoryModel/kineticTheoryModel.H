@@ -98,6 +98,9 @@ class kineticTheoryModel
             autoPtr<kineticTheoryModels::frictionalStressModel>
                 frictionalStressModel_;
 
+        //  switch for modified formulation 
+            //- Use multiparticle formulation
+            Switch multiParticles_;
 
         // Kinetic Theory Model coefficients
 
@@ -112,7 +115,7 @@ class kineticTheoryModel
 
             //- Residual phase fraction
             dimensionedScalar residualAlpha_;
-
+            
             //- Maximum turbulent viscosity
             dimensionedScalar maxNut_;
 

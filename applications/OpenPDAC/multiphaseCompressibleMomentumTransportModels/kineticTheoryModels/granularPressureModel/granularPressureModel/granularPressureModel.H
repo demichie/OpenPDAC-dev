@@ -103,6 +103,7 @@ public:
         virtual tmp<volScalarField> granularPressureCoeff
         (
             const volScalarField& alpha1,
+            const phaseModel& continuousPhase,
             const volScalarField& g0,
             const volScalarField& rho1,
             const dimensionedScalar& e
@@ -112,6 +113,7 @@ public:
         virtual tmp<volScalarField> granularPressureCoeffPrime
         (
             const volScalarField& alpha1,
+            const phaseModel& continuousPhase,
             const volScalarField& g0,
             const volScalarField& g0prime,
             const volScalarField& rho1,
@@ -122,6 +124,7 @@ public:
         virtual tmp<volScalarField> granularPressureCoeff
         (
             const phaseModel& phase1,
+            const phaseModel& continuousPhase,
             const PtrList<volScalarField>& g0,
             const volScalarField& rho1,
             const dimensionedScalar& e
@@ -131,6 +134,7 @@ public:
         virtual tmp<volScalarField> granularPressureCoeffPrime
         (
             const phaseModel& phase1,
+            const phaseModel& continuousPhase,
             const PtrList<volScalarField>& g0,
             const PtrList<volScalarField>& g0prime,
             const volScalarField& rho1,

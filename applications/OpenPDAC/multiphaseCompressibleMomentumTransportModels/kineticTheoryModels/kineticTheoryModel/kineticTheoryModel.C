@@ -22,7 +22,6 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 \*---------------------------------------------------------------------------*/
-
 #include "kineticTheoryModel.H"
 #include "mathematicalConstants.H"
 #include "phaseSystem.H"
@@ -40,11 +39,10 @@ Foam::RASModels::kineticTheoryModel::continuousPhase() const
 
     if (continuousPhaseName_ == word::null)
     {
-        if (fluid.movingPhases().size() != 2)
+        if (fluid.movingPhases().size() >= 2)
         {
             FatalIOErrorInFunction(coeffDict_)
-                << "Continuous phase name must be specified "
-                << "when there are more than two moving phases."
+                << "Continuous phase name must be specified."
                 << exit(FatalIOError);
         }
 
@@ -130,6 +128,7 @@ Foam::RASModels::kineticTheoryModel::kineticTheoryModel
         )
     ),
 
+    multiParticles_(coeffDict_.lookup("multiParticles")),
     equilibrium_(coeffDict_.lookup("equilibrium")),
     e_("e", dimless, coeffDict_),
     alphaMinFriction_
@@ -245,6 +244,7 @@ bool Foam::RASModels::kineticTheoryModel::read()
         read()
     )
     {
+        coeffDict().lookup("multiParticles") >> multiParticles_;
         coeffDict().lookup("equilibrium") >> equilibrium_;
         e_.readIfPresent(coeffDict());
         alphaMinFriction_.readIfPresent(coeffDict());
@@ -308,22 +308,20 @@ Foam::tmp<Foam::volScalarField>
 Foam::RASModels::kineticTheoryModel::pPrime() const
 {
     const volScalarField& rho = phase_.rho();
+    const phaseModel& continuousPhase = this->continuousPhase();    
+    Info << "Continuous and dispersed phases: " << continuousPhase.name() << ", " << phase_.name() << endl;
     
-    volScalarField alpha = phase_;
-    const phaseSystem& fluid = phase_.fluid();
-    
-    alpha *=0;
+    volScalarField alphasMax_ = 0.0*phase_;
         
-    forAll(fluid.phases(), phasei)
+    if ( multiParticles_)
     {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (phase.incompressible())
-        {
-            const volScalarField& alphas = phase;
-            alpha += alphas;
-        }
+        alphasMax_ += phase_.fluid().alfasMax();
     }
+    else
+    {   
+        alphasMax_ += phase_.alphaMax();
+    }
+
 
     tmp<volScalarField> tpPrime
     (
@@ -334,18 +332,26 @@ Foam::RASModels::kineticTheoryModel::pPrime() const
            *granularPressureModel_->granularPressureCoeffPrime
             (
                 phase_,
-                
+                continuousPhase,                
                 radialModel_->g0
                 (
-                    phase_,
+                    (  multiParticles_
+                     ? phase_
+                     : alpha_
+                    ),
+                    continuousPhase,
                     alphaMinFriction_,
-                    phase_.alphaMax()
+                    alphasMax_
                 ),
                 radialModel_->g0prime
                 (
-                    phase_,
+                    (  multiParticles_
+                     ? phase_
+                     : alpha_
+                    ),
+                    continuousPhase,
                     alphaMinFriction_,
-                    phase_.alphaMax()
+                    alphasMax_
                 ),
                 rho,
                 e_
@@ -353,8 +359,9 @@ Foam::RASModels::kineticTheoryModel::pPrime() const
          +  frictionalStressModel_->frictionalPressurePrime
             (
                 phase_,
+                continuousPhase,
                 alphaMinFriction_,
-                phase_.alphaMax()
+                alphasMax_
             )
         )
     );
@@ -444,29 +451,24 @@ void Foam::RASModels::kineticTheoryModel::correct()
     const volTensorField& gradU(tgradU());
     const volSymmTensorField D(symm(gradU));
 
-    volScalarField alphas = phase_;
     
-    volScalarField alphasMax = fluid.alfasMax();
+    volScalarField alphasMax_ = 0.0*phase_;
     
-    alphas *=0;
-        
-    forAll(fluid.phases(), phasei)
+    // Calculating the radial distribution function
+    if ( multiParticles_)
     {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (phase.incompressible())
-        {
-            const volScalarField& alphai = phase;
-            alphas += max(alphai,scalar(0));
-        }
+        alphasMax_ = phase_.fluid().alfasMax();
+        PtrList<volScalarField> g0list_ = radialModel_->g0(phase_, continuousPhase, alphaMinFriction_, alphasMax_);
+        gs0_ = g0list_[indexi];
+    }
+    else 
+    {
+        alphasMax_ += phase_.alphaMax();
+        gs0_ = radialModel_->g0(alpha, continuousPhase, alphaMinFriction_, alphasMax_);
     }
 
-    // Calculating the radial distribution function
-    PtrList<volScalarField> g0list_ = radialModel_->g0(phase_, alphaMinFriction_, phase_.alphaMax());
-    volScalarField gs0_ = g0list_[indexi];
-    //gs0_ = radialModel_->g0(alpha, alphaMinFriction_, phase_.alphaMax());
-
-
+    const volScalarField alphas = 1.0 - continuousPhase;
+    
     if (!equilibrium_)
     {
         // Particle viscosity (Table 3.2, p.47)
@@ -521,12 +523,23 @@ void Foam::RASModels::kineticTheoryModel::correct()
         // particle pressure - coefficient in front of Theta (Eq. 3.22, p. 45)
         const volScalarField PsCoeff
         (
-            granularPressureModel_->granularPressureCoeff
-            (
-                phase_,
-                g0list_,
-                rho,
-                e_
+            ( multiParticles_
+              ? granularPressureModel_->granularPressureCoeff
+                (
+                    phase_,
+                    continuousPhase,
+                    radialModel_->g0(phase_, continuousPhase, alphaMinFriction_, alphasMax_),
+                    rho,
+                    e_
+                )
+              : granularPressureModel_->granularPressureCoeff
+                (
+                    phase_,
+                    continuousPhase,
+                    gs0_,
+                    rho,
+                    e_
+                )
             )
         );
 
@@ -638,8 +651,9 @@ void Foam::RASModels::kineticTheoryModel::correct()
             frictionalStressModel_->frictionalPressure
             (
                 phase_,
+                continuousPhase,
                 alphaMinFriction_,
-                phase_.alphaMax()
+                alphasMax_
             )
         );
 
@@ -651,8 +665,9 @@ void Foam::RASModels::kineticTheoryModel::correct()
             frictionalStressModel_->nu
             (
                 phase_,
+                continuousPhase,
                 alphaMinFriction_,
-                phase_.alphaMax(),
+                alphasMax_,
                 pf/rho,
                 D
             ),

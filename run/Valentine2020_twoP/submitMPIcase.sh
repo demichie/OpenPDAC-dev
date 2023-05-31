@@ -1,5 +1,8 @@
 foamCleanCase
 
+cp ./system/controlDict.init ./system/controlDict
+cp ./system/fvSolution.init ./system/fvSolution
+
 blockMesh 
 checkMesh -allTopology -allGeometry
 
@@ -16,10 +19,6 @@ mv 0/T.particles2.init 0/T.particles2
 mv 0/U.air.init 0/U.air
 mv 0/U.particles1.init 0/U.particles1
 mv 0/U.particles2.init 0/U.particles2
-
-
-cp ./system/controlDict.init ./system/controlDict
-cp ./system/fvSolution.init ./system/fvSolution
 
 #FOR SCALAR RUN:
 foamRun

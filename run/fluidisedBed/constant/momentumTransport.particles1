@@ -25,6 +25,7 @@ RAS
 
     kineticTheoryCoeffs
     {
+        multiParticles          on;
         continuousPhase         air;
         equilibrium             off;
 
@@ -48,12 +49,6 @@ RAS
         }
     }
 
-    phasePressureCoeffs
-    {
-        preAlphaExp     500;
-        expMax          1000;
-        g0              1000;
-    }
 }
 
 

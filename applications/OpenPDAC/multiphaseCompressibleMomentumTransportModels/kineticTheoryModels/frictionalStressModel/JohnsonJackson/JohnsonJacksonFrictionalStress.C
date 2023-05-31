@@ -83,31 +83,16 @@ Foam::kineticTheoryModels::frictionalStressModels::JohnsonJackson::
 frictionalPressure
 (
     const phaseModel& phase,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
-    volScalarField alpha = phase;
-    const phaseSystem& fluid = phase.fluid();
-    
-    alpha *=0;
+    const volScalarField alphas = 1.0 - continuousPhase;
         
-    forAll(fluid.phases(), phasei)
-    {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (phase.incompressible())
-        {
-            const volScalarField& alphas = phase;
-            alpha += alphas;
-        }
-    }    
-        
-    Info<< "min alpha " << min(alpha).value() <<
-  	               " max p " << max(alpha).value() << endl;
     return
-        Fr_*pow(max(alpha - alphaMinFriction, scalar(0)), eta_)
-       /pow(max(alphaMax - alpha, alphaDeltaMin_), p_);
+        Fr_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_)
+       /pow(max(alphasMax - alphas, alphaDeltaMin_), p_);
 }
 
 
@@ -116,32 +101,19 @@ Foam::kineticTheoryModels::frictionalStressModels::JohnsonJackson::
 frictionalPressurePrime
 (
     const phaseModel& phase,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax
+    const volScalarField& alphasMax
 ) const
 {
-    volScalarField alpha = phase;
-    const phaseSystem& fluid = phase.fluid();
-    
-    alpha *=0;
-        
-    forAll(fluid.phases(), phasei)
-    {
-        const phaseModel& phase = fluid.phases()[phasei];
-        
-        if (phase.incompressible())
-        {
-            const volScalarField& alphas = phase;
-            alpha += alphas;
-        }
-    }
+    const volScalarField alphas = 1.0 - continuousPhase;
 
     return Fr_*
     (
-        eta_*pow(max(alpha - alphaMinFriction, scalar(0)), eta_ - 1)
-       *(alphaMax - alpha)
-      + p_*pow(max(alpha - alphaMinFriction, scalar(0)), eta_)
-    )/pow(max(alphaMax - alpha, alphaDeltaMin_), p_ + 1);
+        eta_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_ - 1)
+       *(alphasMax - alphas)
+      + p_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_)
+    )/pow(max(alphasMax - alphas, alphaDeltaMin_), p_ + 1);
 }
 
 
@@ -149,8 +121,9 @@ Foam::tmp<Foam::volScalarField>
 Foam::kineticTheoryModels::frictionalStressModels::JohnsonJackson::nu
 (
     const phaseModel& phase,
+    const phaseModel& continuousPhase,
     const dimensionedScalar& alphaMinFriction,
-    const dimensionedScalar& alphaMax,
+    const volScalarField& alphasMax,
     const volScalarField& pf,
     const volSymmTensorField& D
 ) const

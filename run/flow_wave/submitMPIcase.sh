@@ -7,6 +7,8 @@ cd preprocessing
 python createSTL.py
 cd ..
 
+cp ./system/controlDict.init ./system/controlDict
+cp ./system/fvSolution.init ./system/fvSolution
 
 blockMesh 
 checkMesh -allTopology -allGeometry
@@ -19,8 +21,6 @@ changeDictionary
 # extrudeMesh
 # changeDictionary
 
-cp ./system/controlDict.init ./system/controlDict
-cp ./system/fvSolution.init ./system/fvSolution
 
 rm -rf 0
 cp -r org.0 0

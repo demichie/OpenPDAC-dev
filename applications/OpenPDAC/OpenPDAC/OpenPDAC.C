@@ -306,10 +306,14 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     muC = phases_[carrierIdx].thermo().mu();
 
     Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
-    
-    // Mixture viscosity
-    muMix = muC * pow( 1.0 - ( 1.0 - phases_[carrierIdx] ) / 0.62 , -1.55);
 
+    volScalarField alphasMax = fluid_.alfasMax();
+    Info<< "min alphasMax " << min(alphasMax).value() << " max alphasMax " << max(alphasMax).value() << endl;
+   
+    // Mixture viscosity
+    muMix = muC * pow( 1.0 - ( 1.0 - max(0.0,phases[carrierIdx]) ) / alphasMax , -1.55);
+    Info<< "min muMix " << min(muMix).value() << " max muMix " << max(muMix).value() << endl;
+   
     // Compute mass-weighted mixture velocity
     U = 0.0* phases_[0].U();
     forAll(phases_, phasei)
@@ -318,8 +322,6 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
         U += phase * phase.rho() * phase.U() / rho;
 
     }
-
-    Info<< "min muMix " << min(muMix).value() << " max muMix " << max(muMix).value() << endl;
 
     clouds.info();
     
@@ -436,8 +438,10 @@ void Foam::solvers::OpenPDAC::postSolve()
 {
     divU.clear();
     
+    volScalarField alphasMax = fluid_.alfasMax();
     
-    muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - phases[carrierIdx] )) / 0.62 , -1.55);
+    muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - max(0.0,phases[carrierIdx]) )) / alphasMax , -1.55);
+
     rho = fluid_.rho();
     
     U *= 0.0;

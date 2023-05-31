@@ -103,16 +103,18 @@ public:
         virtual tmp<volScalarField> g0
         (
             const volScalarField& alpha,
+            const phaseModel& continuousPhase,
             const dimensionedScalar& alphaMinFriction,
-            const dimensionedScalar& alphaMax
+            const volScalarField& alphasMax
         ) const = 0;
 
         //- Derivative of the radial distribution function
         virtual tmp<volScalarField> g0prime
         (
             const volScalarField& alpha,
+            const phaseModel& continuousPhase,
             const dimensionedScalar& alphaMinFriction,
-            const dimensionedScalar& alphaMax
+            const volScalarField& alphasMax
         ) const = 0;
 
         //- Radial distribution function
@@ -120,8 +122,9 @@ public:
         virtual PtrList<volScalarField> g0
         (
             const phaseModel& phase,
+            const phaseModel& continuousPhase,
             const dimensionedScalar& alphaMinFriction,
-            const dimensionedScalar& alphaMax
+            const volScalarField& alphasMax
         ) const = 0;
 
         //- Derivative of the radial distribution function
@@ -129,8 +132,9 @@ public:
         virtual PtrList<volScalarField> g0prime
         (
             const phaseModel& phase,
+            const phaseModel& continuousPhase,
             const dimensionedScalar& alphaMinFriction,
-            const dimensionedScalar& alphaMax
+            const volScalarField& alphasMax
         ) const = 0;
 
 
