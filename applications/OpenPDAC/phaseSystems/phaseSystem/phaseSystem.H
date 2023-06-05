@@ -134,6 +134,9 @@ protected:
         //- Optional MRF zones
         IOMRFZoneList MRF_;
 
+        //- Name of continuous phase
+        word continuousPhaseName_;
+
         //- Name of optional reference phase which is not solved for
         // but obtained from the sum of the other phases
         word referencePhaseName_;
@@ -475,6 +478,8 @@ public:
 
             //- Return the maximum packing
             tmp<volScalarField> alfasMax() const;
+
+            word continuousPhaseName() const;
 
             //- Return the mixture velocity
             tmp<volVectorField> U() const;

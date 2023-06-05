@@ -229,6 +229,8 @@ Foam::phaseSystem::phaseSystem
 
     MRF_(mesh_),
 
+    continuousPhaseName_(lookupOrDefault("continuousPhase", word::null)),
+
     referencePhaseName_(lookupOrDefault("referencePhase", word::null)),
 
     phaseModels_
@@ -315,6 +317,33 @@ Foam::phaseSystem::phaseSystem
     // Update motion fields
     correctKinematics();
 
+    // Set continuous phase
+    if (continuousPhaseName_ == word::null)
+    {
+        FatalIOErrorInFunction(*this)
+            << "ContinuousPhase must be specified."
+            << exit(FatalIOError);
+    }
+    else
+    {
+        phaseModel* continuousPhasePtr = &phases()[continuousPhaseName_];
+        bool continuousCheck=false;
+    
+        forAll(phaseModels_, phasei)
+        {
+            if (&phaseModels_[phasei] == continuousPhasePtr)
+            {
+                continuousCheck=true;
+            }
+        }
+        if (continuousCheck == false)
+        {
+            FatalIOErrorInFunction(*this)
+                << "ContinuousPhase must be specified."
+                << exit(FatalIOError);
+        }    
+    }
+
     // Set the optional reference phase fraction from the other phases
     if (referencePhaseName_ != word::null)
     {
@@ -372,6 +401,11 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::rho() const
     {
         return rho/sumAlphaMoving();
     }
+}
+
+Foam::word Foam::phaseSystem::continuousPhaseName() const
+{
+    return continuousPhaseName_;
 }
 
 Foam::tmp<Foam::volScalarField> Foam::phaseSystem::alfasMax() const

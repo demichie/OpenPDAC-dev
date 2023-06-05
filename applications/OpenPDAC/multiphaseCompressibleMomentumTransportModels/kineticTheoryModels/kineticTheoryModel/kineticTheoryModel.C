@@ -36,27 +36,9 @@ const Foam::phaseModel&
 Foam::RASModels::kineticTheoryModel::continuousPhase() const
 {
     const phaseSystem& fluid = phase_.fluid();
+    const word&continuousPhaseName_ = fluid.continuousPhaseName();
 
-    if (continuousPhaseName_ == word::null)
-    {
-        if (fluid.movingPhases().size() >= 2)
-        {
-            FatalIOErrorInFunction(coeffDict_)
-                << "Continuous phase name must be specified."
-                << exit(FatalIOError);
-        }
-
-        forAll(fluid.movingPhases(), movingPhasei)
-        {
-            const phaseModel& otherPhase = fluid.movingPhases()[movingPhasei];
-
-            if (&otherPhase != &phase_)
-            {
-                return otherPhase;
-            }
-        }
-    }
-
+    // Info << "Continuous Phase " << continuousPhaseName_ << endl;
     return fluid.phases()[continuousPhaseName_];
 };
 
@@ -86,11 +68,6 @@ Foam::RASModels::kineticTheoryModel::kineticTheoryModel
     ),
 
     phase_(refCast<const phaseModel>(viscosity)),
-
-    continuousPhaseName_
-    (
-        coeffDict_.lookupOrDefault("continuousPhase", word::null)
-    ),
 
     viscosityModel_
     (

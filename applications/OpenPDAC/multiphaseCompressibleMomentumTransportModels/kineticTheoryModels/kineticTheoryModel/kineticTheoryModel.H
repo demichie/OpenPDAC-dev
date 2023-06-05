@@ -75,10 +75,6 @@ class kineticTheoryModel
 
         const phaseModel& phase_;
 
-        //- Name of the continuous phase
-        word continuousPhaseName_;
-
-
         // Sub-models
 
             //- Run-time selected viscosity model
