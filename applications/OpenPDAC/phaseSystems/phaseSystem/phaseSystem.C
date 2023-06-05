@@ -428,7 +428,7 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::alfasMax() const
     {
         const phaseModel& phase = phaseModels_[phasei];
         
-        if (phase.incompressible())
+        if (&phase != &phaseModels_[continuousPhaseName_])
         {
             const volScalarField& alphai = phase;
             alphas += max(alphai,scalar(0));
@@ -437,14 +437,14 @@ Foam::tmp<Foam::volScalarField> Foam::phaseSystem::alfasMax() const
     
     forAll(phaseModels_, phasei)
     {
-        if (phaseModels_[phasei].incompressible())
+        if (&phaseModels_[phasei] != &phaseModels_[continuousPhaseName_])
     
         {
             den *= 0.0;
 
             forAll(phaseModels_, phasej)
             {
-                if (phaseModels_[phasej].incompressible())
+                if (&phaseModels_[phasej] != &phaseModels_[continuousPhaseName_])
                 {
                     volScalarField di = phaseModels_[phasei].d();
                     volScalarField dj = phaseModels_[phasej].d();
