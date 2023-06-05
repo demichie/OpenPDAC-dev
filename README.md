@@ -16,3 +16,5 @@ Four test cases are provided:
 - a 3d impinging flow with two solid phases.
 
 This version is based on *openfoam-dev_20230526_amd64.deb*
+
+This code is not approved not endorsed by the OpenFOAM Foundation or by ESI Ltd, the owner of OpenFOAM.
