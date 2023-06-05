@@ -18,6 +18,8 @@ type    basicMultiphaseSystem;
 
 phases (particles1 particles2 air);
 
+coninuousPhase air;
+
 referencePhase air;
 
 particles1
