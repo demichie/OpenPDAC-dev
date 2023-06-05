@@ -162,8 +162,6 @@ JohnsonJacksonSchaeffer::nu
     }
 
     const fvPatchList& patches = phase.mesh().boundary();
-    const volVectorField& U = phase.U();
-
     volScalarField::Boundary& nufBf = nuf.boundaryFieldRef();
 
     forAll(patches, patchi)
@@ -174,7 +172,7 @@ JohnsonJacksonSchaeffer::nu
                 (
                     pf.boundaryField()[patchi]*sin(phi_.value())
                    /(
-                        mag(U.boundaryField()[patchi].snGrad())
+                        mag(phase.U()().boundaryField()[patchi].snGrad())
                       + small
                     )
                 );

@@ -46,7 +46,7 @@ Foam::solvers::OpenPDAC::compressibilityEqns
     {
         phaseModel& phase = phases_[phasei];
         const volScalarField& alpha = phase;
-        volScalarField& rho = phase.thermoRef().rho();
+        volScalarField& rho = phase.rho();
 
         pEqnComps.set(phasei, new fvScalarMatrix(p_rgh, dimVolume/dimTime));
         fvScalarMatrix& pEqnComp = pEqnComps[phasei];

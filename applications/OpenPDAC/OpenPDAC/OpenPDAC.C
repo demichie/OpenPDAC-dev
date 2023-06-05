@@ -167,7 +167,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     phi_(fluid_.phi()),
 
-    p_(phases_[0].thermoRef().p()),
+    p_(phases_[0].thermo().p()),
 
     p_rgh(buoyancy.p_rgh),
 
@@ -405,11 +405,6 @@ void Foam::solvers::OpenPDAC::preSolve()
 
 void Foam::solvers::OpenPDAC::prePredictor()
 {
-    if (pimple.models())
-    {
-        fvModels().correct();
-    }
-
     if (pimple.thermophysics() || pimple.flow())
     {
         fluid_.solve(rAUs, rAUfs);
