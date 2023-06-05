@@ -15,4 +15,4 @@ Four test cases are provided:
 - a 2D fluidezed bed with two solid phases;
 - a 3d impinging flow with two solid phases.
 
-This version is based on openfoam-dev_20230526_amd64.deb
+This version is based on *openfoam-dev_20230526_amd64.deb*
