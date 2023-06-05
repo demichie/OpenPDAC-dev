@@ -19,6 +19,8 @@ type basicMultiphaseSystem;
 
 phases (particles gas);
 
+continuousPhase gas;
+
 pMin 10000;
 
 particles
