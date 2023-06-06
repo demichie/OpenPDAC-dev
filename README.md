@@ -8,10 +8,13 @@ In addition, a lagrangian library is included in the model (one-way coupling wit
 
 The module also implement an initialization of the hydrostatic pressure profile, which is needed for simulations on large domain. This allows you to use boundary conditions which are appropriate for inflow/outflow.
 
-Three test cases are provided:
+Four test cases are provided:
 
 - a 3D explosion simulation with a synthetic topography;
 - a 2D dilute flow over a wavy surface;
-- a 2D fluidezed bed with two solid phases.
+- a 2D fluidezed bed with two solid phases;
+- a 3d impinging flow with two solid phases.
 
-This version is based on openfoam-dev_20230526_amd64.d
+This version is based on *openfoam-dev_20230526_amd64.deb*
+
+This code is not approved not endorsed by the OpenFOAM Foundation or by ESI Ltd, the owner of OpenFOAM.
