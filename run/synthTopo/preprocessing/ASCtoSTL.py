@@ -294,6 +294,21 @@ def main(argv):
 
     try:
 
+        from ASCtoSTLdict import dist_flat
+
+    except ImportError:
+
+        print('Missing parameter in dict: dist_flat (float)')
+        print('Set to default value: dist_flat=0')
+        dist_flat = 0
+
+    if dist_flat >= dist0:
+    
+        print('dist_flat should be < dist0')
+        print('Set to default value: dist_flat=0')
+            
+    try:
+
         from ASCtoSTLdict import nlevels
 
     except ImportError:
@@ -572,7 +587,7 @@ def main(argv):
 
         if (dist < dist_lev):
 
-            dz_rel = -(1.0 - (dist / dist0)**enne)**(1.0 / enne)
+            dz_rel = -(1.0 - (np.maximum(0,dist-dist_flat) / (dist0-dist_flat))**enne)**(1.0 / enne)
 
             if (conduit_radius > 0) and (dist <=
                                          conduit_radius + conduit_buffer):
@@ -656,6 +671,7 @@ def main(argv):
     x_org = np.array(x_check)
     y_org = np.array(y_check)
     z_org = np.array(z_check_org)
+    z_smooth = np.array(z_check)
 
     x_new = np.array(x_check) + np.array(dx)
     y_new = np.array(y_check) + np.array(dy)
@@ -758,8 +774,21 @@ def main(argv):
 
     tri_in = tri_simpl[inner_tri_list, :]    
 
-    # original elevation 3D point refined grid
-    vertices_org = np.column_stack((x_org, y_org, z_org))
+    try:
+
+        from ASCtoSTLdict import top_smooth_flag
+
+    except ImportError:
+
+        print('Missing parameter in dict: top_smooth_flag (bool)')
+        print('Set to default: top_smooth_flag = False')
+
+
+    if top_smooth_flag:
+        vertices_org = np.column_stack((x_org, y_org, z_smooth))
+    else:
+        # original elevation 3D point refined grid
+        vertices_org = np.column_stack((x_org, y_org, z_org))
 
     # modified elevation 3D point refined grid
     vertices = np.column_stack((x_new, y_new, z_new))
