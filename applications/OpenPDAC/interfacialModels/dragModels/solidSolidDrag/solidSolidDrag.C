@@ -59,28 +59,35 @@ Foam::dragModels::solidSolidDrag::KSolidSolid
     const volScalarField& alphas2 = solid2;
     const scalar Pi = constant::mathematical::pi;
     const volScalarField magURel(mag(solid1.U() - solid2.U()));
-        
-    volScalarField g0 = 1.0 / alphag; 
+    const volScalarField alphasMax = fluid.alfasMax();
+    const word&continuousPhaseName = fluid.continuousPhaseName();
+    const phaseModel& continuousPhase = fluid.phases()[continuousPhaseName]; 
+    
+    volScalarField alphas = 1.0 - alphag;
+    volScalarField g0 = 1.0/(1 - cbrt(alphas/alphasMax)); 
+    
+    volScalarField const_sum = 0.0/solid1.d();
 
-    volScalarField iter_const = ( 3.0 * solid1.d() * solid2.d() ) / 
-    	    ( sqr(alphag) * ( solid1.d() + solid2.d() ) );
-        
-    forAll(fluid.phases(), phasei)
+    forAll(fluid.phases(), phaseIdx)
     {
-        const phaseModel& phase = fluid.phases()[phasei];
+        const phaseModel& phase = fluid.phases()[phaseIdx];
         
-        if (phase.incompressible())
+        if (&phase != &continuousPhase)
         {
-            const volScalarField& alphas = phase;
-            volScalarField iter_term = alphas / phase.d();
-    	    g0 += iter_const * iter_term;
+    	    const volScalarField& alpha = phase;
+            const_sum += alpha / phase.d();
         }
 
-    }  
+    }
+    
+    volScalarField g0_11 = g0 + 0.5*solid1.d()*const_sum;   
+    volScalarField g0_22 = g0 + 0.5*solid2.d()*const_sum;   
+        
+    volScalarField g0_12 = ( solid1.d()*g0_11 + solid2.d()*g0_22 ) / ( solid1.d() + solid2.d() );  
     
     volScalarField fractNum = 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 ) 
         * alphas1 * solid1.rho() * alphas2 * solid2.rho() * sqr( solid1.d() + solid2.d() )
-        * g0 * magURel;
+        * g0_12 * magURel;
         
     volScalarField fractDen = 2.0 * Pi * ( solid1.rho() * pow(solid1.d(), 3.0) 
         + solid1.rho() * pow(solid2.d(), 3.0) );    
