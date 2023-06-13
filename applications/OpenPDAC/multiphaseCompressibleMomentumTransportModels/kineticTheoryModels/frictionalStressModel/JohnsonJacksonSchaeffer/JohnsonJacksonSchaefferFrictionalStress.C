@@ -113,7 +113,7 @@ JohnsonJacksonSchaeffer::frictionalPressurePrime
     (
         eta_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_ - 1)
        *(alphasMax - alphas)
-      + p_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_)
+      + p_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_)*pos(alphasMax - alphas - alphaDeltaMin_)
     )/pow(max(alphasMax - alphas, alphaDeltaMin_), p_ + 1);
 }
 

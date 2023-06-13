@@ -22,85 +22,95 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::dragModels::GidaspowErgunWenYu
+    Foam::kineticTheoryModels::radialModels::Lebowitz
 
 Description
-    Gidaspow, Ergun, Wen and Yu drag model
-
-    Reference:
-    \verbatim
-        Gidaspow, D. (1994).
-        Multiphase flow and fluidisation: continuum and kinetic theory
-        descriptions.
-        Academic press, New York.
-    \endverbatim
 
 SourceFiles
-    GidaspowErgunWenYu.C
+    LebowitzRadial.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef GidaspowErgunWenYu_H
-#define GidaspowErgunWenYu_H
+#ifndef LebowitzRadial_H
+#define LebowitzRadial_H
 
-#include "dispersedDragModel.H"
-#include "Ergun.H"
-#include "WenYu.H"
+#include "radialModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 namespace Foam
 {
-namespace dragModels
+namespace kineticTheoryModels
+{
+namespace radialModels
 {
 
 /*---------------------------------------------------------------------------*\
-                     Class GidaspowErgunWenYu Declaration
+                       Class Lebowitz Declaration
 \*---------------------------------------------------------------------------*/
 
-class GidaspowErgunWenYu
+class Lebowitz
 :
-    public dispersedDragModel
+    public radialModel
 {
-    // Private Data
 
-        //- Ergun drag model
-        Ergun Ergun_;
-
-        //- Wen Yu drag model
-        WenYu WenYu_;
-        
 public:
 
     //- Runtime type information
-    TypeName("GidaspowErgunWenYu");
+    TypeName("Lebowitz");
 
 
     // Constructors
 
-        //- Construct from a dictionary and an interface
-        GidaspowErgunWenYu
-        (
-            const dictionary& dict,
-            const phaseInterface& interface,
-            const bool registerObject
-        );
+        //- Construct from components
+        Lebowitz(const dictionary& dict);
 
 
     //- Destructor
-    virtual ~GidaspowErgunWenYu();
+    virtual ~Lebowitz();
 
 
     // Member Functions
 
-        //- Drag coefficient
-        virtual tmp<volScalarField> CdRe() const;
+
+        tmp<volScalarField> g0
+        (
+            const volScalarField& alpha,
+            const phaseModel& continuousPhase,
+            const dimensionedScalar& alphaMinFriction,
+            const volScalarField& alphasMax
+        ) const;
+
+        tmp<volScalarField> g0prime
+        (
+            const volScalarField& alpha,
+            const phaseModel& continuousPhase,
+            const dimensionedScalar& alphaMinFriction,
+            const volScalarField& alphasMax
+        ) const;
+
+        PtrList<volScalarField> g0
+                (
+            const phaseModel& phase,
+            const phaseModel& continuousPhase,
+            const dimensionedScalar& alphaMinFriction,
+            const volScalarField& alphasMax
+        ) const;
+
+        PtrList<volScalarField> g0prime
+        (
+            const phaseModel& phase,
+            const phaseModel& continuousPhase,
+            const dimensionedScalar& alphaMinFriction,
+            const volScalarField& alphasMax
+        ) const;
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-} // End namespace dragModels
+} // End namespace radialModels
+} // End namespace kineticTheoryModels
 } // End namespace Foam
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

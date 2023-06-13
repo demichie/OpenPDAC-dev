@@ -379,6 +379,13 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
             );
         }
 
+        Info<< "p, min, max = " << min(p).value() << " " << max(p).value() << endl;
+        if (lowPressureTimestepCorrection)
+        {
+            p_ratio = min(p).value() /p.weightedAverage(mesh_.V()).value();
+            Info<< "p_ratio = " << p_ratio << endl;
+        }
+
         // Limit p_rgh
         p_rgh = p - rho*buoyancy.gh;
 

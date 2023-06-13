@@ -286,7 +286,7 @@ Foam::RASModels::kineticTheoryModel::pPrime() const
 {
     const volScalarField& rho = phase_.rho();
     const phaseModel& continuousPhase = this->continuousPhase();    
-    Info << "Continuous and dispersed phases: " << continuousPhase.name() << ", " << phase_.name() << endl;
+    // Info << "Continuous and dispersed phases: " << continuousPhase.name() << ", " << phase_.name() << endl;
     
     volScalarField alphasMax_ = 0.0*phase_;
         
@@ -376,9 +376,9 @@ Foam::RASModels::kineticTheoryModel::devTau() const
         volSymmTensorField::New
         (
             IOobject::groupName("devTau", U_.group()),
-          - (rho_*(nut_ + nuFric_))
+          - (alpha_*rho_*(nut_ + nuFric_))
            *dev(twoSymm(fvc::grad(U_)))
-          - ((rho_*lambda_)*fvc::div(phi_))*symmTensor::I
+          - ((alpha_*rho_*lambda_)*fvc::div(phi_))*symmTensor::I
         )
     );
 }
@@ -392,11 +392,11 @@ Foam::RASModels::kineticTheoryModel::divDevTau
 {
     return
     (
-      - fvm::laplacian(rho_*(nut_ + nuFric_), U)
+      - fvm::laplacian(alpha_*rho_*(nut_ + nuFric_), U)
       - fvc::div
         (
-            (rho_*(nut_ + nuFric_))*dev2(T(fvc::grad(U)))
-          + ((rho_*lambda_)*fvc::div(phi_))
+            (alpha_*rho_*(nut_ + nuFric_))*dev2(T(fvc::grad(U)))
+          + ((alpha_*rho_*lambda_)*fvc::div(phi_))
            *dimensioned<symmTensor>("I", dimless, symmTensor::I),
             "divDevTau(" + U_.name() + ')'
         )
@@ -460,7 +460,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
         // Stress tensor, Definitions, Table 3.1, p. 43
         const volSymmTensorField tau
         (
-            rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
+            alpha*rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
         );
 
         // Dissipation (Eq. 3.24, p.50)

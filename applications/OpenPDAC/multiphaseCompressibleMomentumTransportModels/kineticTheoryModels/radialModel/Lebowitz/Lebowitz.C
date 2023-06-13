@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "SinclairJackson.H"
+#include "Lebowitz.H"
 #include "addToRunTimeSelectionTable.H"
 #include "phaseSystem.H"
 
@@ -35,12 +35,12 @@ namespace kineticTheoryModels
 {
 namespace radialModels
 {
-    defineTypeNameAndDebug(SinclairJackson, 0);
+    defineTypeNameAndDebug(Lebowitz, 0);
 
     addToRunTimeSelectionTable
     (
         radialModel,
-        SinclairJackson,
+        Lebowitz,
         dictionary
     );
 }
@@ -50,7 +50,7 @@ namespace radialModels
 
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::radialModels::SinclairJackson::SinclairJackson
+Foam::kineticTheoryModels::radialModels::Lebowitz::Lebowitz
 (
     const dictionary& dict
 )
@@ -61,14 +61,14 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::SinclairJackson
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
-Foam::kineticTheoryModels::radialModels::SinclairJackson::~SinclairJackson()
+Foam::kineticTheoryModels::radialModels::Lebowitz::~Lebowitz()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
+Foam::kineticTheoryModels::radialModels::Lebowitz::g0
 (
     const volScalarField& alpha,
     const phaseModel& continuousPhase,
@@ -76,12 +76,14 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
     const volScalarField& alphasMax
 ) const
 {
-    return 1.0/(1 - cbrt(min(alpha, alphaMinFriction)/alphasMax));
+    return
+        1.0/continuousPhase
+      + 3*alpha/(2*sqr(continuousPhase));
 }
 
 
 Foam::tmp<Foam::volScalarField>
-Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
+Foam::kineticTheoryModels::radialModels::Lebowitz::g0prime
 (
     const volScalarField& alpha,
     const phaseModel& continuousPhase,
@@ -89,23 +91,13 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
     const volScalarField& alphasMax
 ) const
 {
-    volScalarField aByaMax
-    (
-        cbrt(min(max(alpha, scalar(1e-3)), alphaMinFriction)/alphasMax)
-    );
-
-    volScalarField posCoeff
-    (
-        pos(alphaMinFriction-alpha) * pos(alpha-scalar(1e-3)) 
-    );
-
-    return posCoeff*(1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));
+    return
+        (alpha+5) / (2.0*pow3(continuousPhase));
 }
 
 
-//Foam::tmp<Foam::volScalarField>
 Foam::PtrList<Foam::volScalarField>
-Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
+Foam::kineticTheoryModels::radialModels::Lebowitz::g0
 (
     const phaseModel& phasei,
     const phaseModel& continuousPhase,
@@ -117,7 +109,6 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
     const label& indexi = phasei.index();
     const phaseSystem& fluid = phasei.fluid();
 
-    PtrList<volScalarField> g0_mm(fluid.phases().size());
     PtrList<volScalarField> g0_im(fluid.phases().size());
     
     volScalarField const_sum = alphai/phasei.d();
@@ -134,29 +125,6 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
 
     } 
     
-    volScalarField alphas = 1.0 - continuousPhase;
-
-    volScalarField g0 = 1.0/(1 - cbrt(min(alphas, alphaMinFriction)/alphasMax)); 
-
-    forAll(fluid.phases(), phaseIdx)
-    {
-        const phaseModel& phase = fluid.phases()[phaseIdx];
-        
-        if (&phase != &continuousPhase)
-        {
-            g0_mm.set
-            (
-            	phaseIdx,
-            	volScalarField
-            	(
-            	    "g0_mm" + phasei.name() + "_" + phase.name(),
-            	    g0 + 0.5*phase.d()*const_sum
-            	)
-            ); 
-        }
-
-    } 
-
     forAll(g0_im, iter)
     {
         const phaseModel& phase = fluid.phases()[iter];
@@ -169,7 +137,8 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
             	volScalarField
             	(
             	    "g0_im" + phasei.name() + "_" + phase.name(),
-            	    ( phasei.d()*g0_mm[indexi] + phase.d()*g0_mm[iter] ) / ( phasei.d() + phase.d() )
+            	    1.0/continuousPhase + 3 * phasei.d() * phase.d() 
+            	    / ( sqr(continuousPhase) * phasei.d() + phase.d() ) * const_sum
             	)
             ); 
         }     
@@ -181,7 +150,7 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
 
 // Foam::tmp<Foam::volScalarField>
 Foam::PtrList<Foam::volScalarField>
-Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
+Foam::kineticTheoryModels::radialModels::Lebowitz::g0prime
 (
     const phaseModel& phasei,
     const phaseModel& continuousPhase,
@@ -193,7 +162,6 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
     const label& indexi = phasei.index();
     const phaseSystem& fluid = phasei.fluid();
 
-    PtrList<volScalarField> g0prime_mm(fluid.phases().size());
     PtrList<volScalarField> g0prime_im(fluid.phases().size());
     
     volScalarField const_sum = alphai/phasei.d();
@@ -209,43 +177,7 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
         }
 
     } 
-
-    volScalarField alphas = 1.0 - continuousPhase;
-
-    volScalarField aByaMax
-    (
-        cbrt(min(max(alphas, scalar(1e-3)), alphaMinFriction)/alphasMax)
-    );
-
     
-    volScalarField g0prime = (1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));
-
-    volScalarField posCoeff
-    (
-        pos(alphaMinFriction-alphas) * pos(alphas-scalar(1e-3))
-    );
-
-    g0prime *= posCoeff;
-
-    forAll(fluid.phases(), phaseIdx)
-    {
-        const phaseModel& phase = fluid.phases()[phaseIdx];
-        
-        if (&phase != &continuousPhase)
-        {
-            g0prime_mm.set
-            (
-            	phaseIdx,
-            	volScalarField
-            	(
-            	    "g0prime_mm" + phasei.name() + "_" + phase.name(),
-            	    g0prime + 0.5 * phasei.d() / phase.d()
-            	)
-            );            
-        }
-
-    } 
-
     forAll(g0prime_im, iter)
     {
         const phaseModel& phase = fluid.phases()[iter];
@@ -257,18 +189,16 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
             	iter,
             	volScalarField
             	(
-            	    "g0prime_im" + phasei.name() + "_" + phase.name(),
-            	    ( phasei.d()*g0prime_mm[indexi] + phase.d()*g0prime_mm[iter] ) / ( phasei.d() + phase.d() ) 
+            	    "g0_im" + phasei.name() + "_" + phase.name(),
+            	    1.0/sqr(continuousPhase) + 6 * phasei.d() * phase.d() 
+            	    / ( pow(continuousPhase,3) * phasei.d() + phase.d() ) * const_sum
+            	    + 3 * phasei.d() * phase.d() / phasei.d()
+            	    / ( sqr(continuousPhase) * phasei.d() + phase.d() ) 
             	)
-            );
-
-	// Info << "min g0 " << min(g0prime_im[iter]).value() << endl;
-        // Info << "max g0 " << max(g0prime_im[iter]).value() << endl;
-	            
-        }    
-    
+            ); 
+        }     
     }
-
+    
     return g0prime_im;
 }
 

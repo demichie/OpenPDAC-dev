@@ -18,6 +18,7 @@ kineticTheoryModels/conductivityModel/HrenyaSinclair/HrenyaSinclairConductivity.
 kineticTheoryModels/radialModel/radialModel/radialModel.C
 kineticTheoryModels/radialModel/radialModel/radialModelNew.C
 kineticTheoryModels/radialModel/SinclairJackson/SinclairJackson.C
+kineticTheoryModels/radialModel/Lebowitz/Lebowitz.C
 
 kineticTheoryModels/granularPressureModel/granularPressureModel/granularPressureModel.C
 kineticTheoryModels/granularPressureModel/granularPressureModel/granularPressureModelNew.C

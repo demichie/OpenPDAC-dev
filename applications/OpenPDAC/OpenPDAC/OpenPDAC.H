@@ -95,6 +95,9 @@ protected:
         //  Defaults to 1
         int nEnergyCorrectors;
 
+        //- Partial elimination drag contribution optimisation
+        //  Defaults to false
+        Switch lowPressureTimestepCorrection;
 
     //- Optional LTS reciprocal time-step field
     tmp<volScalarField> trDeltaT;
@@ -141,6 +144,8 @@ protected:
         volVectorField U;
         
         parcelCloudList clouds;
+
+        scalar p_ratio;
 
     // Pressure reference
 

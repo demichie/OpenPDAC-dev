@@ -61,6 +61,11 @@ class WenYu
     public dispersedDragModel
 {
 
+    // Private Data
+
+        //- Residual Reynold's number
+        const dimensionedScalar residualRe_;
+
 public:
 
     //- Runtime type information

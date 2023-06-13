@@ -47,7 +47,8 @@ Foam::dragModels::WenYu::WenYu
     const bool registerObject
 )
 :
-    dispersedDragModel(dict, interface, registerObject)
+    dispersedDragModel(dict, interface, registerObject),
+    residualRe_("residualRe", dimless, dict)
 {}
 
 
@@ -65,7 +66,8 @@ Foam::tmp<Foam::volScalarField> Foam::dragModels::WenYu::CdRe() const
     (
         max(1 - interface_.dispersed(), interface_.continuous().residualAlpha())
     );
-
+    
+    // const volScalarField Res(alpha2*max(residualRe_,interface_.Re()));
     const volScalarField Res(alpha2*interface_.Re());
     const volScalarField CdsRes
     (

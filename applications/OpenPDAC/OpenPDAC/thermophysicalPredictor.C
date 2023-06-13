@@ -64,6 +64,7 @@ void Foam::solvers::OpenPDAC::compositionPredictor()
             YiEqn.relax();
             fvConstraints().constrain(YiEqn);
             YiEqn.solve("Yi");
+            Y[i] = max(0.0,min(Y[i],1.0));
             fvConstraints().constrain(Y[i]);
         }
     }

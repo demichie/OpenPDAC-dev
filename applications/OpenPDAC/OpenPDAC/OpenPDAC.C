@@ -63,6 +63,9 @@ void Foam::solvers::OpenPDAC::readControls()
 
     nEnergyCorrectors =
         pimple.dict().lookupOrDefault<int>("nEnergyCorrectors", 1);
+        
+    lowPressureTimestepCorrection =     
+        pimple.dict().lookupOrDefault<Switch>("lowPressureTimestepCorrection", false);
 }
 
 
@@ -82,13 +85,37 @@ void Foam::solvers::OpenPDAC::correctCoNum()
         );
     }
 
+    if (lowPressureTimestepCorrection)
+    {
+        volScalarField alphasMax = fluid_.alfasMax();
+        const word&continuousPhaseName = fluid.continuousPhaseName();
+        volScalarField alfaCont = fluid.phases()[continuousPhaseName];
+    
+        scalarField alfa_ratio = pow(max(0*alphasMax,alphasMax-alfaCont)/alphasMax,0.5);
+
+        Info<< "p_ratio = " << p_ratio << endl;
+        Info<< "alfa_ratio: min = " << min(alfa_ratio) << endl;
+        sumPhi /= p_ratio;
+    }
+    
+
     CoNum = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
 
     const scalar meanCoNum =
         0.5*(gSum(sumPhi)/gSum(mesh.V().field()))*runTime.deltaTValue();
 
-    Info<< "Courant Number mean: " << meanCoNum
-        << " max: " << CoNum << endl;
+    if (lowPressureTimestepCorrection)
+    {
+        Info<< "Courant Number mean: " << meanCoNum*p_ratio
+            << " max: " << CoNum*p_ratio << endl;
+        Info<< "Modified Courant Number mean: " << meanCoNum
+            << " max: " << CoNum << endl;
+    }
+    else
+    {
+        Info<< "Courant Number mean: " << meanCoNum*p_ratio
+            << " max: " << CoNum << endl;
+    }
 }
 
 
@@ -116,6 +143,11 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     nEnergyCorrectors
     (
         pimple.dict().lookupOrDefault<int>("nEnergyCorrectors", 1)
+    ),
+
+    lowPressureTimestepCorrection
+    (
+        pimple.dict().lookupOrDefault<Switch>("lowPressureTimestepCorrection", false)
     ),
 
     trDeltaT
@@ -279,31 +311,18 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     Info<< "min p " << min(p_).value() <<
   	               " max p " << max(p_).value() << endl;
+  	               
+    p_ratio = min(p_).value() /p_.weightedAverage(mesh_.V()).value();
+    	               
     Info<< "min p_rgh " << min(p_rgh).value() <<
    	               " max p_rgh " << max(p_rgh).value() << endl;
     Info<< "min rho " << min(rho).value() <<
    	               " max rho " << max(rho).value() << endl;
 
-    // Search for carrier phase
-    carrierIdx = 0;
-
-    forAll(phases_, phasei)
-    {
-        phaseModel& phase = phases_[phasei];
-        if (!phase.incompressible())
-        {
-    	    Info << phasei << " compressible" << endl;
-    	    carrierIdx = phasei;
-        }
-	    else
-        {
-    	    Info << phasei << " incompressible" << endl;
-        }
-
-    }
-
+    const word&continuousPhaseName = fluid.continuousPhaseName();
+    
     // Carrier phase viscosity
-    muC = phases_[carrierIdx].thermo().mu();
+    muC = phases_[continuousPhaseName].thermo().mu();
 
     Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
 
@@ -311,7 +330,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     Info<< "min alphasMax " << min(alphasMax).value() << " max alphasMax " << max(alphasMax).value() << endl;
    
     // Mixture viscosity
-    muMix = muC * pow( 1.0 - ( 1.0 - max(0.0,phases[carrierIdx]) ) / alphasMax , -1.55);
+    muMix = muC * pow( 1.0 - ( 1.0 - max(0.0,phases[continuousPhaseName]) ) / alphasMax , -1.55);
     Info<< "min muMix " << min(muMix).value() << " max muMix " << max(muMix).value() << endl;
    
     // Compute mass-weighted mixture velocity
@@ -435,7 +454,8 @@ void Foam::solvers::OpenPDAC::postSolve()
     
     volScalarField alphasMax = fluid_.alfasMax();
     
-    muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - max(0.0,phases[carrierIdx]) )) / alphasMax , -1.55);
+    const word&continuousPhaseName = fluid.continuousPhaseName();
+    muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - max(0.0,phases[continuousPhaseName]) )) / alphasMax , -1.55);
 
     rho = fluid_.rho();
     

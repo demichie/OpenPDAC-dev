@@ -478,7 +478,7 @@ void Foam::phaseSystem::solve
             {
                 phaseModel& phase = solvePhases[solvePhasei];
 
-                Info<< phase.name() << " fraction, min, max = "
+                Info<< phase.name() << " fraction mean, min, max = "
                     << phase.weightedAverage(mesh_.V()).value()
                     << ' ' << min(phase).value()
                     << ' ' << max(phase).value()
