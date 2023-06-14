@@ -321,7 +321,7 @@ Foam::phaseSystem::phaseSystem
     if (continuousPhaseName_ == word::null)
     {
         FatalIOErrorInFunction(*this)
-            << "ContinuousPhase must be specified."
+            << "continuousPhase must be specified."
             << exit(FatalIOError);
     }
     else
@@ -339,7 +339,7 @@ Foam::phaseSystem::phaseSystem
         if (continuousCheck == false)
         {
             FatalIOErrorInFunction(*this)
-                << "ContinuousPhase must be specified."
+                << "continuousPhase must be specified."
                 << exit(FatalIOError);
         }    
     }
