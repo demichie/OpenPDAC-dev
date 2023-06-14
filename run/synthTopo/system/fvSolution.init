@@ -135,6 +135,7 @@ PIMPLE
     hydrostaticInitialisation true;
     nHydrostaticCorrectors 20;
     partialElimination  true;
+    lowPressureTimestepCorrection on;
 }
 
 relaxationFactors
