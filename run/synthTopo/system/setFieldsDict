@@ -43,22 +43,21 @@ regions
 		);
 	}
 
-    /*
+    
 	zoneToCell
 	{
-		name "sphere";
+		zone "crater";
 		fieldValues
 		(
-			volScalarFieldValue alpha.gas 0.7
-			volScalarFieldValue alpha.particles 0.3   
+			volScalarFieldValue alpha.gas 0.45
+			volScalarFieldValue alpha.particles 0.55   
 			volScalarFieldValue air.gas 0.000001
 			volScalarFieldValue H2O.gas 0.999999
-            volScalarFieldValue p 5.0e06
             volScalarFieldValue T.gas 633.0
             volScalarFieldValue T.particles 633.0
 		);
 	}
-	*/
+	
 );
 
 
