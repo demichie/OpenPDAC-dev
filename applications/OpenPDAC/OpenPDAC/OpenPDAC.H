@@ -147,8 +147,6 @@ protected:
         
         scalar p_ratio;
 
-        scalar p_ratio;
-
     // Pressure reference
 
         //- Pressure reference

@@ -290,7 +290,7 @@ Foam::RASModels::kineticTheoryModel::pPrime() const
 {
     const volScalarField& rho = phase_.rho();
     const phaseModel& continuousPhase = this->continuousPhase();    
-    // Info << "Continuous and dispersed phases: " << continuousPhase.name() << ", " << phase_.name() << endl;
+    Info << "Continuous and dispersed phases: " << continuousPhase.name() << ", " << phase_.name() << endl;
     
     volScalarField alphasMax_ = 0.0*phase_;
         
@@ -385,12 +385,9 @@ Foam::RASModels::kineticTheoryModel::devTau() const
           - (alpha_*rho_*(nut_ + nuFric_))
            *dev(twoSymm(fvc::grad(U_)))
           - ((alpha_*rho_*lambda_)*fvc::div(phi_))*symmTensor::I
-<<<<<<< Updated upstream
-=======
           // - (rho_*(nut_ + nuFric_))
           //  *dev(twoSymm(fvc::grad(U_)))
           // - ((rho_*lambda_)*fvc::div(phi_))*symmTensor::I
->>>>>>> Stashed changes
         )
     );
 }
@@ -404,24 +401,18 @@ Foam::RASModels::kineticTheoryModel::divDevTau
 {
     return
     (
-<<<<<<< Updated upstream
-=======
       // TODO: CHECK IF THIS IS CORRECT (added alpha)
       // ADDED LINES 406-410, COMMENTED 411-415
->>>>>>> Stashed changes
       - fvm::laplacian(alpha_*rho_*(nut_ + nuFric_), U)
       - fvc::div
         (
             (alpha_*rho_*(nut_ + nuFric_))*dev2(T(fvc::grad(U)))
           + ((alpha_*rho_*lambda_)*fvc::div(phi_))
-<<<<<<< Updated upstream
-=======
       // - fvm::laplacian(rho_*(nut_ + nuFric_), U)
       // - fvc::div
       //   (
       //       (rho_*(nut_ + nuFric_))*dev2(T(fvc::grad(U)))
       //     + ((rho_*lambda_)*fvc::div(phi_))
->>>>>>> Stashed changes
            *dimensioned<symmTensor>("I", dimless, symmTensor::I),
             "divDevTau(" + U_.name() + ')'
         )
@@ -485,14 +476,10 @@ void Foam::RASModels::kineticTheoryModel::correct()
         // Stress tensor, Definitions, Table 3.1, p. 43
         const volSymmTensorField tau
         (
-<<<<<<< Updated upstream
-            alpha*rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
-=======
             // TODO: CHECK IF THIS IS CORRECT (added alpha)
             // ADDED LINE 481, COMMENTED 482
             alpha*rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
             // rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
->>>>>>> Stashed changes
         );
 
         // Dissipation (Eq. 3.24, p.50)

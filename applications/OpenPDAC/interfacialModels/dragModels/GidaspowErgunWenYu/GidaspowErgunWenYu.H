@@ -69,7 +69,8 @@ class GidaspowErgunWenYu
 
         //- Wen Yu drag model
         WenYu WenYu_;
-        
+
+
 public:
 
     //- Runtime type information

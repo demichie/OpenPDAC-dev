@@ -94,14 +94,6 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
         cbrt(min(max(alpha, scalar(1e-3)), alphaMinFriction)/alphasMax)
     );
 
-<<<<<<< Updated upstream
-    volScalarField posCoeff
-    (
-        pos(alphaMinFriction-alpha) * pos(alpha-scalar(1e-3)) 
-    );
-
-    return posCoeff*(1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));
-=======
     // TODO: CHECK IF THIS MAKE THE CONVERGENCE WORST OR BETTER
     volScalarField posCoeff
     (
@@ -109,7 +101,6 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
     );
     return posCoeff*(1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));    
     // return (1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));
->>>>>>> Stashed changes
 }
 
 
@@ -226,18 +217,9 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
     (
         cbrt(min(max(alphas, scalar(1e-3)), alphaMinFriction)/alphasMax)
     );
-
     
     volScalarField g0prime = (1.0/(3*alphasMax))/sqr(aByaMax - sqr(aByaMax));
 
-<<<<<<< Updated upstream
-    volScalarField posCoeff
-    (
-        pos(alphaMinFriction-alphas) * pos(alphas-scalar(1e-3))
-    );
-
-    g0prime *= posCoeff;
-=======
     // TODO: CHECK IF THIS MAKE THE CONVERGENCE WORST OR BETTER
 	volScalarField posCoeff
 	(
@@ -245,7 +227,6 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0prime
 	);	
     g0prime *= posCoeff;
     // CORRECTION ENDS HERE
->>>>>>> Stashed changes
 
     forAll(fluid.phases(), phaseIdx)
     {
