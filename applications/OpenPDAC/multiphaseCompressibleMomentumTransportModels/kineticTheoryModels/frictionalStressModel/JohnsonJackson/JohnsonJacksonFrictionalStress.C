@@ -108,11 +108,20 @@ frictionalPressurePrime
 {
     const volScalarField alphas = 1.0 - continuousPhase;
 
+    // TODO: CHECK IF THIS MAKE THE CONVERGENCE WORST OR BETTER
+    // ADDED LINES 117 and 119, COMMENTED 116           
     return Fr_*
     (
         eta_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_ - 1)
+<<<<<<< Updated upstream
        *(alphasMax - alphas)
       + p_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_)*pos(alphasMax - alphas - alphaDeltaMin_)
+=======
+       //*(alphasMax - alphas)
+       *max(alphasMax - alphas, alphaDeltaMin_)
+      + p_*pow(max(alphas - alphaMinFriction, scalar(0)), eta_)
+      *pos(alphasMax - alphas - alphaDeltaMin_)
+>>>>>>> Stashed changes
     )/pow(max(alphasMax - alphas, alphaDeltaMin_), p_ + 1);
 }
 

@@ -473,6 +473,9 @@ void Foam::phaseSystem::solve
                 }
             }
 
+            // TODO: update alphasmax and rescale sum(alfas) if > alfasmax
+            // and then set alfac = 1 - sum(alfas)
+
             // Report the phase fractions and the phase fraction sum
             forAll(solvePhases, solvePhasei)
             {

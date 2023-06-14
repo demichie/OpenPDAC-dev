@@ -65,7 +65,11 @@ void Foam::solvers::OpenPDAC::readControls()
         pimple.dict().lookupOrDefault<int>("nEnergyCorrectors", 1);
         
     lowPressureTimestepCorrection =     
+<<<<<<< Updated upstream
         pimple.dict().lookupOrDefault<Switch>("lowPressureTimestepCorrection", false);
+=======
+        pimple.dict().lookupOrDefault<Switch>("lowPressureTimestepCorrection", false);        
+>>>>>>> Stashed changes
 }
 
 
@@ -95,7 +99,11 @@ void Foam::solvers::OpenPDAC::correctCoNum()
 
         Info<< "p_ratio = " << p_ratio << endl;
         Info<< "alfa_ratio: min = " << min(alfa_ratio) << endl;
+<<<<<<< Updated upstream
         sumPhi /= p_ratio;
+=======
+        sumPhi /= sqrt(p_ratio);
+>>>>>>> Stashed changes
     }
     
 
@@ -106,8 +114,13 @@ void Foam::solvers::OpenPDAC::correctCoNum()
 
     if (lowPressureTimestepCorrection)
     {
+<<<<<<< Updated upstream
         Info<< "Courant Number mean: " << meanCoNum*p_ratio
             << " max: " << CoNum*p_ratio << endl;
+=======
+        Info<< "Courant Number mean: " << meanCoNum*sqrt(p_ratio)
+            << " max: " << CoNum*sqrt(p_ratio) << endl;
+>>>>>>> Stashed changes
         Info<< "Modified Courant Number mean: " << meanCoNum
             << " max: " << CoNum << endl;
     }
@@ -149,7 +162,11 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     (
         pimple.dict().lookupOrDefault<Switch>("lowPressureTimestepCorrection", false)
     ),
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
     trDeltaT
     (
         LTS
@@ -311,19 +328,32 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 
     Info<< "min p " << min(p_).value() <<
   	               " max p " << max(p_).value() << endl;
+<<<<<<< Updated upstream
   	               
     p_ratio = min(p_).value() /p_.weightedAverage(mesh_.V()).value();
     	               
+=======
+
+    p_ratio = min(p_).value() /p_.weightedAverage(mesh_.V()).value();
+    	                 	                 	               
+>>>>>>> Stashed changes
     Info<< "min p_rgh " << min(p_rgh).value() <<
    	               " max p_rgh " << max(p_rgh).value() << endl;
     Info<< "min rho " << min(rho).value() <<
    	               " max rho " << max(rho).value() << endl;
 
+<<<<<<< Updated upstream
     const word&continuousPhaseName = fluid.continuousPhaseName();
     
     // Carrier phase viscosity
     muC = phases_[continuousPhaseName].thermo().mu();
 
+=======
+    // Carrier phase viscosity
+    const word&continuousPhaseName = fluid.continuousPhaseName();
+    muC = phases_[continuousPhaseName].thermo().mu();
+    
+>>>>>>> Stashed changes
     Info<< "min muC " << min(muC).value() << " max muC " << max(muC).value() << endl;
 
     volScalarField alphasMax = fluid_.alfasMax();
@@ -455,6 +485,10 @@ void Foam::solvers::OpenPDAC::postSolve()
     volScalarField alphasMax = fluid_.alfasMax();
     
     const word&continuousPhaseName = fluid.continuousPhaseName();
+<<<<<<< Updated upstream
+=======
+    
+>>>>>>> Stashed changes
     muMix = muC * pow( max(0.0, 1.0 - ( 1.0 - max(0.0,phases[continuousPhaseName]) )) / alphasMax , -1.55);
 
     rho = fluid_.rho();

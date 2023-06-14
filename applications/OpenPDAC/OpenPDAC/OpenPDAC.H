@@ -144,6 +144,8 @@ protected:
         volVectorField U;
         
         parcelCloudList clouds;
+        
+        scalar p_ratio;
 
         scalar p_ratio;
 
