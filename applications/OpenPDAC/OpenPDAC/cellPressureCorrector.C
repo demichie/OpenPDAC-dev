@@ -450,7 +450,7 @@ void Foam::solvers::OpenPDAC::cellPressureCorrector()
 
         if (lowPressureTimestepCorrection)
         {
-            p_ratio = min(p).value() /p.weightedAverage(mesh_.V()).value();
+            p_ratio = max(0.01,min(p).value() /p.weightedAverage(mesh_.V()).value());
             Info<< "p_ratio = " << p_ratio << endl;
         }
         
