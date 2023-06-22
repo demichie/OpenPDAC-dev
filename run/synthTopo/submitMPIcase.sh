@@ -19,7 +19,7 @@ checkMesh -allTopology -allGeometry
 
 snappyHexMesh -overwrite
 topoSet -dict topoSetDict-conduit
-# topoSet -dict topoSetDict-sphere
+checkMesh -allTopology -allGeometry
 
 cp ./system/fvSolution.init ./system/fvSolution
 cp ./constant/cloudProperties.init ./constant/cloudProperties
@@ -43,8 +43,15 @@ cp ./constant/cloudProperties.run ./constant/cloudProperties
 #sbatch MPIJob_run.script
 #squeue
 
+#FOR PARALLEL RUN ON PC:
+decomposePar
+mpirun -np xx foamRun -parallel
+reconstructPar -newTimes -fields '(p U.gas alpha.particles)' -lagrangianFields '(U d)'
+foamToVTK -fields '()' -noInternal -noFaceZones -excludePatches '(atm top terrain)'
+
 #FOR SCALAR RUN:
 foamRun
+
 
 python plotBallistics.py
 
