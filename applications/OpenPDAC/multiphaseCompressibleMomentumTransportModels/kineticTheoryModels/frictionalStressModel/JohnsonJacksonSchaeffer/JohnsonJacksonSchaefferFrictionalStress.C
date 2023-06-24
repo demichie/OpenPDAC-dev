@@ -66,6 +66,7 @@ JohnsonJacksonSchaeffer::JohnsonJacksonSchaeffer
     alphaDeltaMin_("alphaDeltaMin", dimless, coeffDict_)
 {
     phi_ *= constant::mathematical::pi/180.0;
+    sinPhi_ = sin(phi_);
 }
 
 
@@ -131,6 +132,7 @@ JohnsonJacksonSchaeffer::nu
     const dimensionedScalar& alphaMinFriction,
     const volScalarField& alphasMax,
     const volScalarField& pf,
+    const volScalarField& rho,
     const volSymmTensorField& D
 ) const
 {
@@ -157,7 +159,7 @@ JohnsonJacksonSchaeffer::nu
         if (alphas[celli] > alphaMinFriction.value())
         {
             nuf[celli] =
-                0.5*pf[celli]*sin(phi_.value())
+                0.5*pf[celli]/rho[celli]*sin(phi_.value())
                /(
                     sqrt((1.0/3.0)*sqr(tr(D[celli])) - invariantII(D[celli]))
                   + small
@@ -174,7 +176,8 @@ JohnsonJacksonSchaeffer::nu
         {
             nufBf[patchi] =
                 (
-                    pf.boundaryField()[patchi]*sin(phi_.value())
+                    pf.boundaryField()[patchi]/rho.boundaryField()[patchi]
+                   *sin(phi_.value())
                    /(
                         mag(phase.U()().boundaryField()[patchi].snGrad())
                       + small

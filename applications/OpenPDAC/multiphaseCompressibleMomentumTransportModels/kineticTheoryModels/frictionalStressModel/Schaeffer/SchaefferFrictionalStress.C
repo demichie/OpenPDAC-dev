@@ -115,6 +115,7 @@ Foam::kineticTheoryModels::frictionalStressModels::Schaeffer::nu
     const dimensionedScalar& alphaMinFriction,
     const volScalarField& alphasMax,
     const volScalarField& pf,
+    const volScalarField& rho,
     const volSymmTensorField& D
 ) const
 {
@@ -141,7 +142,7 @@ Foam::kineticTheoryModels::frictionalStressModels::Schaeffer::nu
         if (alphas[celli] > alphaMinFriction.value())
         {
             nuf[celli] =
-                0.5*pf[celli]*sin(phi_.value())
+                0.5*pf[celli]/rho[celli]*sin(phi_.value())
                /(
                     sqrt((1.0/3.0)*sqr(tr(D[celli])) - invariantII(D[celli]))
                   + small
@@ -158,7 +159,8 @@ Foam::kineticTheoryModels::frictionalStressModels::Schaeffer::nu
         {
             nufBf[patchi] =
                 (
-                    pf.boundaryField()[patchi]*sin(phi_.value())
+                    pf.boundaryField()[patchi]/rho.boundaryField()[patchi]
+                   *sin(phi_.value())
                    /(
                       mag(phase.U()().boundaryField()[patchi].snGrad())
                       + small

@@ -110,6 +110,20 @@ public:
             const dimensionedScalar& e
         ) const = 0;
 
+        virtual tmp<volScalarField> nu
+        (
+            const volScalarField& alpha1,
+            const volScalarField& Theta,
+            const dimensionedScalar& ThetaSmall,
+            const volScalarField& g0,
+            const volScalarField& sumAlphaGs0,
+            const volScalarField& beta,
+            const volScalarField& rho1,
+            const volScalarField& da,
+            const dimensionedScalar& e
+        ) const = 0;
+
+
         virtual bool read()
         {
             return true;

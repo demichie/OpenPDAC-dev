@@ -115,6 +115,8 @@ class kineticTheoryModel
             //- Maximum turbulent viscosity
             dimensionedScalar maxNut_;
 
+            //- Residual phase fraction
+            dimensionedScalar residualTheta_;
 
         // Kinetic Theory Model Fields
 
@@ -126,6 +128,9 @@ class kineticTheoryModel
 
             //- The granular radial distribution
             volScalarField gs0_;
+
+            //- The total granular radial distribution
+            volScalarField sumAlphaGs0_;
 
             //- The granular "thermal" conductivity
             volScalarField kappa_;

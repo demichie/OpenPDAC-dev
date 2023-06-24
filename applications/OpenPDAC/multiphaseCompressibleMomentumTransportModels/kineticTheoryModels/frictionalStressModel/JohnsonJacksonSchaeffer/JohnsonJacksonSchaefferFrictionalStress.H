@@ -69,6 +69,9 @@ class JohnsonJacksonSchaeffer
         //- Angle of internal friction
         dimensionedScalar phi_;
 
+        //- Sin of Angle of internal friction
+        dimensionedScalar sinPhi_;
+
         //- Lower limit for (alphaMax - alpha1)
         dimensionedScalar alphaDeltaMin_;
 
@@ -114,6 +117,7 @@ public:
             const dimensionedScalar& alphaMinFriction,
             const volScalarField& alphasMax,
             const volScalarField& pf,
+            const volScalarField& rho,
             const volSymmTensorField& D
         ) const;
 

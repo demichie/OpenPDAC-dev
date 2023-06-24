@@ -102,6 +102,7 @@ public:
             const dimensionedScalar& alphaMinFriction,
             const volScalarField& alphasMax,
             const volScalarField& pf,
+            const volScalarField& rho,
             const volSymmTensorField& D
         ) const;
 

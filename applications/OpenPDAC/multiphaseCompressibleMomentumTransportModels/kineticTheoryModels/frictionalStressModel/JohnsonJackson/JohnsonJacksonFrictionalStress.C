@@ -129,6 +129,7 @@ Foam::kineticTheoryModels::frictionalStressModels::JohnsonJackson::nu
     const dimensionedScalar& alphaMinFriction,
     const volScalarField& alphasMax,
     const volScalarField& pf,
+    const volScalarField& rho,
     const volSymmTensorField& D
 ) const
 {
@@ -139,7 +140,7 @@ Foam::kineticTheoryModels::frictionalStressModels::JohnsonJackson::nu
             Foam::typedName<frictionalStressModel>("nu"),
             phase.group()
         ),
-        dimensionedScalar(dimTime, 0.5)*pf*sin(phi_)
+        dimensionedScalar(dimTime, 0.5)*pf/rho*sin(phi_)
     );
 }
 
