@@ -294,13 +294,9 @@ Foam::RASModels::kineticTheoryModel::sigma() const
     (
         volSymmTensorField::New
         (
-          // TODO: CHECK IF THIS IS CORRECT (added alpha)
-          // ADDED LINES 279-280, COMMENTED 281-282
           IOobject::groupName("R", U_.group()),
           - alpha_*(nut_ + nuFric_)*dev(twoSymm(fvc::grad(U_)))
           - (alpha_*lambda_*fvc::div(phi_))*symmTensor::I
-          //- (nut_ + nuFric_)*dev(twoSymm(fvc::grad(U_)))
-          //- (lambda_*fvc::div(phi_))*symmTensor::I
         )
     );
 }
@@ -400,15 +396,10 @@ Foam::RASModels::kineticTheoryModel::devTau() const
     (
         volSymmTensorField::New
         (
-            // TODO: CHECK IF THIS IS CORRECT (added alpha)
-            // ADDED LINES 385-387, COMMENTED 388-390
             IOobject::groupName("devTau", U_.group()),
           - (alpha_*rho_*(nut_ + nuFric_))
            *dev(twoSymm(fvc::grad(U_)))
           - ((alpha_*rho_*lambda_)*fvc::div(phi_))*symmTensor::I
-          // - (rho_*(nut_ + nuFric_))
-          //  *dev(twoSymm(fvc::grad(U_)))
-          // - ((rho_*lambda_)*fvc::div(phi_))*symmTensor::I
         )
     );
 }
@@ -422,18 +413,11 @@ Foam::RASModels::kineticTheoryModel::divDevTau
 {
     return
     (
-      // TODO: CHECK IF THIS IS CORRECT (added alpha)
-      // ADDED LINES 406-410, COMMENTED 411-415
       - fvm::laplacian(alpha_*rho_*(nut_ + nuFric_), U)
       - fvc::div
         (
             (alpha_*rho_*(nut_ + nuFric_))*dev2(T(fvc::grad(U)))
           + ((alpha_*rho_*lambda_)*fvc::div(phi_))
-      // - fvm::laplacian(rho_*(nut_ + nuFric_), U)
-      // - fvc::div
-      //   (
-      //       (rho_*(nut_ + nuFric_))*dev2(T(fvc::grad(U)))
-      //     + ((rho_*lambda_)*fvc::div(phi_))
            *dimensioned<symmTensor>("I", dimless, symmTensor::I),
             "divDevTau(" + U_.name() + ')'
         )
@@ -534,10 +518,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
         // Stress tensor, Definitions, Table 3.1, p. 43
         const volSymmTensorField tau
         (
-            // TODO: CHECK IF THIS IS CORRECT (added alpha)
-            // ADDED LINE 481, COMMENTED 482
             alpha*rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
-            // rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
         );
 
         // Dissipation (Eq. 3.24, p.50)
