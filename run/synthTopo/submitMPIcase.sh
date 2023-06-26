@@ -18,8 +18,9 @@ blockMesh
 checkMesh -allTopology -allGeometry
 
 snappyHexMesh -overwrite
-topoSet -dict topoSetDict-conduit
 checkMesh -allTopology -allGeometry
+
+topoSet -dict topoSetDict-conduit
 
 cp ./system/fvSolution.init ./system/fvSolution
 cp ./constant/cloudProperties.init ./constant/cloudProperties

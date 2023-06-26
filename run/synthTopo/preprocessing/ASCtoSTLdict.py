@@ -1,10 +1,10 @@
 path = '../'
 DEM_file = 'synthDEM.asc'
 
-resample = 2  # subsampling factor of the original DEM
+subsample = 2  # subsampling factor of the original DEM
 dist0 = 25.0  # semi-width of the fissure/radius of the cylinder
-dist_flat = 20.0
-enne = 3.0  # shape parameter (1 linear, 2 spherical)
+dist_flat = 15.0
+enne = 1.0  # shape parameter (1 linear, 2 spherical)
 depth = 10.0  # depth of the fissure
 nlevels = 4  # levels of refinements of the subsampled grid
 RBF_interpolation = True # smooth the topography inside the crater

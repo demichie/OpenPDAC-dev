@@ -255,20 +255,20 @@ def main(argv):
 
     try:
 
-        from ASCtoSTLdict import resample
+        from ASCtoSTLdict import subsample
 
     except ImportError:
 
-        print('Missing parameter in dict: resample (int)')
+        print('Missing parameter in dict: subsample (int)')
         sys.exit(1)
 
     # coarsening of the original grid
-    xinit = xinit[::resample]
-    yinit = yinit[::resample]
+    xinit = xinit[::subsample]
+    yinit = yinit[::subsample]
 
-    Xinit = Xinit[::resample, ::resample]
-    Yinit = Yinit[::resample, ::resample]
-    Zinit = Zinit[::resample, ::resample]
+    Xinit = Xinit[::subsample, ::subsample]
+    Yinit = Yinit[::subsample, ::subsample]
+    Zinit = Zinit[::subsample, ::subsample]
 
     # list of points of DEM for the refined nested grid
     x_check = []
@@ -306,6 +306,7 @@ def main(argv):
     
         print('dist_flat should be < dist0')
         print('Set to default value: dist_flat=0')
+        dist_flat = 0
             
     try:
 
@@ -346,7 +347,7 @@ def main(argv):
     dz2.extend(0.0 * Xinit[:, 0:idx_min].ravel())
     dz_crater.extend(0.0 * Xinit[:, 0:idx_min].ravel())
 
-    # add original points on the north of first bounding box
+    # add original points on the south of first bounding box
     x_check.extend(Xinit[0:idy_min, idx_min:idx_max + 1].ravel())
     y_check.extend(Yinit[0:idy_min, idx_min:idx_max + 1].ravel())
     z_check.extend(Zinit[0:idy_min, idx_min:idx_max + 1].ravel())
@@ -358,7 +359,7 @@ def main(argv):
     dz2.extend(0.0 * Xinit[0:idy_min, idx_min:idx_max + 1].ravel())
     dz_crater.extend(0.0 * Xinit[0:idy_min, idx_min:idx_max + 1].ravel())
 
-    # add original points on the south of first bounding box
+    # add original points on the north of first bounding box
     x_check.extend(Xinit[idy_max + 1:, idx_min:idx_max + 1].ravel())
     y_check.extend(Yinit[idy_max + 1:, idx_min:idx_max + 1].ravel())
     z_check.extend(Zinit[idy_max + 1:, idx_min:idx_max + 1].ravel())
@@ -586,7 +587,7 @@ def main(argv):
             sys.exit(1)
 
         if (dist < dist_lev):
-
+        
             dz_rel = -(1.0 - (np.maximum(0,dist-dist_flat) / (dist0-dist_flat))**enne)**(1.0 / enne)
 
             if (conduit_radius > 0) and (dist <=
@@ -649,10 +650,11 @@ def main(argv):
             if (conduit_radius > 0) and (dist <=
                                          conduit_radius + conduit_buffer):
 
-                x_conduit_top.append(x)
-                y_conduit_top.append(y)
+                x_conduit_top.append(x + xb)
+                y_conduit_top.append(y + yb)
                 z_conduit_top.append(
                     float(z) + depth * (dz_rel + conduit_dz_rel))
+                    
                 x_conduit_bottom.append(x + dz_rel * xb)
                 y_conduit_bottom.append(y + dz_rel * yb)
                 z_conduit_bottom.append(float(z) + depth * dz_rel)
@@ -744,35 +746,6 @@ def main(argv):
     # points belonging to both lists (crater area boundary points)
     edge_points = list(set(tri_in1D) & set(tri_out1D))
 
-    # set elevation of points to topography value
-    for i in edge_points:
-        # print(z_org[i]-z_new[i])
-
-        z_new[i] = z_org[i]
-        dz_total[i] = 0.0
-
-        z_new_crater[i] = z_org[i]
-        dz_crater[i] = 0.0
-        
-    for i in inner_tri_list:
-    
-        dz_tri = dz_total[int(tri_simpl[i,0])]
-        dz_tri += dz_total[int(tri_simpl[i,1])]
-        dz_tri += dz_total[int(tri_simpl[i,2])]
-        
-        if dz_tri >= -1.0:
-        
-            print(i,dz_tri)
-        
-            inner_tri_list.remove(i)
-            outer_tri_list.append(i)
-        
-            
-
-    tri_out = tri_simpl[outer_tri_list, :]
-
-
-    tri_in = tri_simpl[inner_tri_list, :]    
 
     try:
 
@@ -782,6 +755,46 @@ def main(argv):
 
         print('Missing parameter in dict: top_smooth_flag (bool)')
         print('Set to default: top_smooth_flag = False')
+
+    # set elevation of points to topography value
+    for i in edge_points:
+        # print(z_org[i]-z_new[i])
+
+        if top_smooth_flag:
+
+            z_new[i] = z_smooth[i]
+            dz_total[i] = 0.0
+
+            z_new_crater[i] = z_smooth[i]
+            dz_crater[i] = 0.0
+
+        else:
+        
+            z_new[i] = z_org[i]
+            dz_total[i] = 0.0
+
+            z_new_crater[i] = z_org[i]
+            dz_crater[i] = 0.0
+        
+
+    for i in inner_tri_list:
+    
+        dz_tri = dz_total[int(tri_simpl[i,0])]
+        dz_tri += dz_total[int(tri_simpl[i,1])]
+        dz_tri += dz_total[int(tri_simpl[i,2])]
+        
+        if dz_tri >= -0.001:
+        
+            print('QUI',i,dz_tri)
+        
+            inner_tri_list.remove(i)
+            outer_tri_list.append(i)
+        
+            
+
+    tri_in = tri_simpl[inner_tri_list, :]    
+    tri_out = tri_simpl[outer_tri_list, :]
+
 
 
     if top_smooth_flag:
@@ -861,12 +874,13 @@ def main(argv):
         for j in range(3):
             surface.vectors[i][j] = vertices[f[2-j], :]
             surface.vectors[i + faces.shape[0]][j] = vertices_org[f[j], :]
-
+  
     volume, cog, inertia = surface.get_mass_properties()
     print("Closed",surface.is_closed())
     print("Total Volume = {0}".format(volume))
 
     surface.save('../constant/triSurface/surface_total_closed.stl')
+
 
     # Create the inside mesh closed on top
     print('Saving closed surface crater stl')

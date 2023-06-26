@@ -39,6 +39,11 @@ RAS
         frictionalStressModel   JohnsonJacksonSchaeffer;
         radialModel             SinclairJackson;
 
+        GidaspowCoeffs
+        {
+            alfa                    1.6;
+        }
+
         JohnsonJacksonSchaefferCoeffs
         {
             Fr                      0.05;
