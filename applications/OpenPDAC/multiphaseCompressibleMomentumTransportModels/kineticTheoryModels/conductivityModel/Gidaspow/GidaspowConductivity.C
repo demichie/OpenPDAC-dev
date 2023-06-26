@@ -109,7 +109,7 @@ Foam::kineticTheoryModels::conductivityModels::Gidaspow::kappa
     const dimensionedScalar eta = 0.5*(1.0 + e);
 
     // Eq. B10 MFIX2012
-    const volScalarField kappa = ( 75*rho1*da*eta*(1-eta)*sqrtPi*sqrt(Theta) )
+    const volScalarField kappa = ( 75*rho1*da*sqrtPi*sqrt(Theta) )
                                  / ( 48*eta*(41-33*eta) );
     // Eq. B9 MFIX2012
     const volScalarField kappaStar = ( rho1*alpha1*g0*Theta*kappa )

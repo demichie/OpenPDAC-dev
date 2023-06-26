@@ -86,7 +86,9 @@ void Foam::solvers::OpenPDAC::energyPredictor()
 
         const volScalarField& alpha = phase;
         const volScalarField& rho = phase.rho();
-        const volVectorField& U = phase.URef();
+        const tmp<volVectorField> tU(phase.U());
+        const volVectorField& U(tU());
+        // const volVectorField& U = phase.URef();
 
         fvScalarMatrix EEqn
         (

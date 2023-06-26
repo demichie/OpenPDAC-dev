@@ -546,9 +546,10 @@ void Foam::RASModels::kineticTheoryModel::correct()
             "gammaCoeff",
             multiParticles_
             ? 12*(1 - sqr(e_))
-              *rho*sumAlphaGs0_*(1.0/da)*ThetaSqrt/sqrtPi
+              *rho*max(alpha, residualAlpha_)
+              *sumAlphaGs0_*(1.0/da)*ThetaSqrt/sqrtPi
             : 12*(1 - sqr(e_))
-              *max(alpha, residualAlpha_)
+              *sqr(max(alpha, residualAlpha_))
               *rho*gs0_*(1.0/da)*ThetaSqrt/sqrtPi
         );
 

@@ -170,7 +170,7 @@ Foam::kineticTheoryModels::radialModels::SinclairJackson::g0
             	volScalarField
             	(
             	    "g0_im" + phasei.name() + "_" + phase.name(),
-            	    ( phasei.d()*g0_mm[indexi] + phase.d()*g0_mm[iter] ) 
+            	    ( phase.d()*g0_mm[indexi] + phasei.d()*g0_mm[iter] ) 
             	    / ( phasei.d() + phase.d() )
             	)
             ); 
