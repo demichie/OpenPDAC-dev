@@ -80,11 +80,14 @@ Foam::dragModels::solidSolidDrag::KSolidSolid
 
     }
     
+    // Eq. 16.5-71 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm 
     volScalarField g0_11 = g0 + 0.5*solid1.d()*const_sum;   
     volScalarField g0_22 = g0 + 0.5*solid2.d()*const_sum;   
-        
-    volScalarField g0_12 = ( solid1.d()*g0_11 + solid2.d()*g0_22 ) / ( solid1.d() + solid2.d() );  
+     
+    // Eq. 16.5-76 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm      
+    volScalarField g0_12 = ( solid2.d()*g0_11 + solid1.d()*g0_22 ) / ( solid1.d() + solid2.d() );  
     
+    // Eq. 16.5-43 https://www.afs.enea.it/project/neptunius/docs/fluent/html/th/node323.htm
     volScalarField fractNum = 3.0 * ( 1.0 + E_ ) * ( Pi / 2.0 + Cf_ * sqr(Pi) / 8.0 ) 
         * alphas1 * solid1.rho() * alphas2 * solid2.rho() * sqr( solid1.d() + solid2.d() )
         * g0_12 * magURel;
