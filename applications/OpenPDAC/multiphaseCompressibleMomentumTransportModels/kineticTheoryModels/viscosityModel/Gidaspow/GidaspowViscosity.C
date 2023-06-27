@@ -119,6 +119,7 @@ Foam::kineticTheoryModels::viscosityModels::Gidaspow::nu
     // Eq. B5 MFIX2012
     const volScalarField muStar = ( rho1*alpha1*g0*Theta*mu ) /
                                   ( rho1*sumAlphaGs0*(Theta+ThetaSmall) + 
+                                    (2*beta*mu)/(rho1*alpha1) );  
     // Eq. B4 MFIX2012
     const volScalarField mu_i = (2+alfa_)/3.0*( muStar / (g0*eta*(2-eta))*
                                 (1+8/5*eta*sumAlphaGs0)*(1+8/5*eta*(3*eta-2)*sumAlphaGs0)+
