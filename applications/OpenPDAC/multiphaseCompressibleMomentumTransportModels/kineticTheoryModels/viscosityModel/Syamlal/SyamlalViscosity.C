@@ -51,7 +51,12 @@ Foam::kineticTheoryModels::viscosityModels::Syamlal::Syamlal
 :
     viscosityModel(dict),
     coeffDict_(dict.optionalSubDict(typeName + "Coeffs")),
-    alfa_("alfa", dimless, coeffDict_)
+    alfa_
+    (
+        "alfa",
+        dimless,
+        coeffDict_.lookupOrDefault<scalar>("alfa", 1.6)
+    )
 {}
 
 

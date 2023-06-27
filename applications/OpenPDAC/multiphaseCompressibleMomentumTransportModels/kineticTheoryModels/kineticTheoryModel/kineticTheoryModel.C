@@ -105,7 +105,9 @@ Foam::RASModels::kineticTheoryModel::kineticTheoryModel
         )
     ),
 
-    multiParticles_(coeffDict_.lookup("multiParticles")),
+    frictInTheta_(coeffDict_.lookupOrDefault("frictInTheta",false)),
+
+    multiParticles_(coeffDict_.lookupOrDefault("multiParticles",false)),
     equilibrium_(coeffDict_.lookup("equilibrium")),
     e_("e", dimless, coeffDict_),
     alphaMinFriction_
@@ -515,10 +517,44 @@ void Foam::RASModels::kineticTheoryModel::correct()
             lambda_ = (4.0/3.0)*da*max(residualAlpha_,alpha)*gs0_*(1 + e_)*ThetaSqrt/sqrtPi;
         }
 
+        // Limit viscosity
+        nut_.min(maxNut_);
+
+        // Frictional pressure
+        const volScalarField pf
+        (
+            frictionalStressModel_->frictionalPressure
+            (
+                phase_,
+                continuousPhase,
+                alphaMinFriction_,
+                alphasMax_
+            )
+        );
+        
+        nuFric_ = min
+        (
+            frictionalStressModel_->nu
+            (
+                phase_,
+                continuousPhase,
+                alphaMinFriction_,
+                alphasMax_,
+                pf,
+                rho,
+                D
+            ),
+            maxNut_ - nut_
+        );
+
+
         // Stress tensor, Definitions, Table 3.1, p. 43
         const volSymmTensorField tau
         (
-            alpha*rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
+            ( frictInTheta_
+              ? alpha*rho*(2*(nut_+nuFric_)*D + (lambda_ - (2.0/3.0)*(nut_+nuFric_))*tr(D)*I)
+              : alpha*rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
+            )               
         );
 
         // Dissipation (Eq. 3.24, p.50)
@@ -602,7 +638,11 @@ void Foam::RASModels::kineticTheoryModel::correct()
             )
           - fvm::laplacian(kappa_, Theta_, "laplacian(kappa,Theta)")
          ==
-          - fvm::SuSp((PsCoeff*I) && gradU, Theta_)
+          - ( frictInTheta_
+              ? fvm::SuSp(((pf/(Theta_ + ThetaSmall))*I) && gradU, Theta_)
+                + fvm::SuSp((PsCoeff*I) && gradU, Theta_)
+              : fvm::SuSp((PsCoeff*I) && gradU, Theta_)  
+            )  
           + (tau && gradU)
           + fvm::Sp(-gammaCoeff, Theta_)
           + fvm::Sp(-J1, Theta_)

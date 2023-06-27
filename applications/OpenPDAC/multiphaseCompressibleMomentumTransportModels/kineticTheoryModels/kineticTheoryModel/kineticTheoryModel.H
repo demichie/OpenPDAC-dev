@@ -94,7 +94,10 @@ class kineticTheoryModel
             autoPtr<kineticTheoryModels::frictionalStressModel>
                 frictionalStressModel_;
 
-        //  switch for modified formulation 
+            //  switch for frictional regime in granular temperature equation 
+            Switch frictInTheta_;
+
+            //  switch for modified formulation 
             //- Use multiparticle formulation
             Switch multiParticles_;
 
