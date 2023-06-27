@@ -38,6 +38,11 @@ RAS
         granularPressureModel       Lun;
         frictionalStressModel       JohnsonJacksonSchaeffer;
         radialModel                 SinclairJackson;
+        
+        GidaspowCoeffs
+        {
+            alfa                    1.6;
+        }
 
         JohnsonJacksonSchaefferCoeffs
         {
