@@ -28,10 +28,11 @@ RAS
         multiParticles          on;
         continuousPhase         air;
         equilibrium             off;
+        frictInTheta            on;
 
         e                       0.8;
         alphaMinFriction        0.5;
-        residualAlpha           1e-4;
+        residualAlpha           1e-8;
 
         granularViscosityModel      Gidaspow;
         granularConductivityModel   Gidaspow;
