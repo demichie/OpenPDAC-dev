@@ -141,6 +141,14 @@ class kineticTheoryModel
             //- The frictional viscosity
             volScalarField nuFric_;
 
+            //- The total solid viscosity
+            volScalarField nus_;
+
+            //- The total solid viscosity
+            volScalarField pfCoeff_;
+
+
+
     // Private Member Functions
 
         void correctNut()

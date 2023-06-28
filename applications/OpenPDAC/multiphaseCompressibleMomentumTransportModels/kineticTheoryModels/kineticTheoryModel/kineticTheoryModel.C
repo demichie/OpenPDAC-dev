@@ -218,7 +218,36 @@ Foam::RASModels::kineticTheoryModel::kineticTheoryModel
         ),
         U.mesh(),
         dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)
+    ),
+
+    nus_
+    (
+        IOobject
+        (
+            IOobject::groupName(typedName("nus"), phase_.name()),
+            U.time().name(),
+            U.mesh(),
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        U.mesh(),
+        dimensionedScalar(dimensionSet(0, 2, -1, 0, 0), 0)
+    ),
+
+    pfCoeff_
+    (
+        IOobject
+        (
+            IOobject::groupName(typedName("pfCoeff"), phase_.name()),
+            U.time().name(),
+            U.mesh(),
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        U.mesh(),
+        dimensionedScalar(dimensionSet(1, -3, 0, 0, 0), 0)
     )
+
        
 {
     if (type == typeName)
@@ -504,6 +533,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
                 
         if ( multiParticles_)
         {
+            // Particle viscosity (Eqs. B4-B7 MFIX-2012.pdf)
             nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
                                        Theta_, ThetaSmall, gs0_, sumAlphaGs0_, beta, rho, da, e_);
             lambda_ = (4.0/3.0)*da*sumAlphaGs0_*(1 + e_)*ThetaSqrt/sqrtPi;
@@ -516,10 +546,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
             // Bulk viscosity  p. 45 (Lun et al. 1984).
             lambda_ = (4.0/3.0)*da*max(residualAlpha_,alpha)*gs0_*(1 + e_)*ThetaSqrt/sqrtPi;
         }
-
-        // Limit viscosity
-        nut_.min(maxNut_);
-
+    
         // Frictional pressure
         const volScalarField pf
         (
@@ -530,31 +557,72 @@ void Foam::RASModels::kineticTheoryModel::correct()
                 alphaMinFriction_,
                 alphasMax_
             )
-        );
-        
-        nuFric_ = min
+        );    
+         
+        // frictional contribution to the pressure-coefficient in front of Theta   
+        if ( frictInTheta_ )
+        {
+            pfCoeff_ = pf / (Theta_ + ThetaSmall);
+        }
+        else
+        {                 
+            pfCoeff_ = 0.0;  
+        }
+            
+        // particle pressure - coefficient in front of Theta (Eq. 3.22, p. 45)
+        const volScalarField PsCoeff
         (
-            frictionalStressModel_->nu
-            (
-                phase_,
-                continuousPhase,
-                alphaMinFriction_,
-                alphasMax_,
-                pf,
-                rho,
-                D
-            ),
-            maxNut_ - nut_
+            ( multiParticles_
+              ? granularPressureModel_->granularPressureCoeff
+                (
+                    phase_,
+                    continuousPhase,
+                    radialModel_->g0(phase_, continuousPhase, alphaMinFriction_, alphasMax_),
+                    rho,
+                    e_
+                )
+              : granularPressureModel_->granularPressureCoeff
+                (
+                    phase_,
+                    continuousPhase,
+                    gs0_,
+                    rho,
+                    e_
+                )
+            )
+            + pfCoeff_          
         );
 
+        if ( frictInTheta_ )
+        {
+            // Limit viscosity
+            nut_.min(maxNut_);
+        
+            nuFric_ = min
+            (
+                frictionalStressModel_->nu
+                (
+                    phase_,
+                    continuousPhase,
+                    alphaMinFriction_,
+                    alphasMax_,
+                    pf,
+                    rho,
+                    D
+                ),
+                maxNut_ - nut_
+            );
+            nus_ = nut_ + nuFric_;
+        }
+        else
+        {
+            nus_ = nut_;                  
+        }
 
         // Stress tensor, Definitions, Table 3.1, p. 43
         const volSymmTensorField tau
         (
-            ( frictInTheta_
-              ? alpha*rho*(2*(nut_+nuFric_)*D + (lambda_ - (2.0/3.0)*(nut_+nuFric_))*tr(D)*I)
-              : alpha*rho*(2*nut_*D + (lambda_ - (2.0/3.0)*nut_)*tr(D)*I)
-            )               
+            alpha*rho*(2*nus_*D + (lambda_ - (2.0/3.0)*nus_)*tr(D)*I)               
         );
 
         // Dissipation (Eq. 3.24, p.50)
@@ -583,31 +651,9 @@ void Foam::RASModels::kineticTheoryModel::correct()
             )
         );
 
-        // particle pressure - coefficient in front of Theta (Eq. 3.22, p. 45)
-        const volScalarField PsCoeff
-        (
-            ( multiParticles_
-              ? granularPressureModel_->granularPressureCoeff
-                (
-                    phase_,
-                    continuousPhase,
-                    radialModel_->g0(phase_, continuousPhase, alphaMinFriction_, alphasMax_),
-                    rho,
-                    e_
-                )
-              : granularPressureModel_->granularPressureCoeff
-                (
-                    phase_,
-                    continuousPhase,
-                    gs0_,
-                    rho,
-                    e_
-                )
-            )
-        );
-
         if ( multiParticles_)
         {
+            // Eqs. B8-B12 MFIX-2012.pdf
             kappa_ = conductivityModel_->kappa(max(alpha, residualAlpha_), 
                                                max(residualTheta_,Theta_), gs0_, 
                                                sumAlphaGs0_, beta, rho, da, e_);
@@ -638,11 +684,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
             )
           - fvm::laplacian(kappa_, Theta_, "laplacian(kappa,Theta)")
          ==
-          - ( frictInTheta_
-              ? fvm::SuSp(((pf/(Theta_ + ThetaSmall))*I) && gradU, Theta_)
-                + fvm::SuSp((PsCoeff*I) && gradU, Theta_)
-              : fvm::SuSp((PsCoeff*I) && gradU, Theta_)  
-            )  
+          - fvm::SuSp((PsCoeff*I) && gradU, Theta_)
           + (tau && gradU)
           + fvm::Sp(-gammaCoeff, Theta_)
           + fvm::Sp(-J1, Theta_)
