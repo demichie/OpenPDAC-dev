@@ -21,7 +21,6 @@ LIB_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
     -llagrangian \
     -llagrangianParcel \
-    -llagrangianParcelTurbulence \
     -lfluidSolver \
     -lphaseSystem \
     -lmultiphaseSystems \
