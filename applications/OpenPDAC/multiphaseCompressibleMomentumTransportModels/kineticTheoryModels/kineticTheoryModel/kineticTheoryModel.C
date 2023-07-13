@@ -526,7 +526,6 @@ void Foam::RASModels::kineticTheoryModel::correct()
         )
     );
 
-    
     if (!equilibrium_)
     {
         const volScalarField ThetaSqrt("sqrtTheta", sqrt(Theta_));
@@ -558,7 +557,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
                 alphasMax_
             )
         );    
-         
+
         // frictional contribution to the pressure-coefficient in front of Theta   
         if ( frictInTheta_ )
         {
@@ -566,7 +565,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
         }
         else
         {                 
-            pfCoeff_ = 0.0;  
+            pfCoeff_ = 0.0 * pf / (Theta_ + ThetaSmall);  
         }
             
         // particle pressure - coefficient in front of Theta (Eq. 3.22, p. 45)
