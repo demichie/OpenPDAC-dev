@@ -48,24 +48,26 @@ namespace solvers
 
 // * * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * //
 
-void Foam::solvers::OpenPDAC::readControls()
+bool Foam::solvers::OpenPDAC::read()
 {
-    fluidSolver::readControls();
+    fluidSolver::read();
 
+    predictMomentum =
+        pimple.dict().lookupOrDefault<bool>("momentumPredictor", false);
+        
     faceMomentum =
         pimple.dict().lookupOrDefault<Switch>("faceMomentum", false);
 
     dragCorrection =
         pimple.dict().lookupOrDefault<Switch>("dragCorrection", false);
 
-    partialElimination =
-        pimple.dict().lookupOrDefault<Switch>("partialElimination", false);
-
     nEnergyCorrectors =
         pimple.dict().lookupOrDefault<int>("nEnergyCorrectors", 1);
         
     lowPressureTimestepCorrection =     
-        pimple.dict().lookupOrDefault<Switch>("lowPressureTimestepCorrection", false);        
+        pimple.dict().lookupOrDefault<Switch>("lowPressureTimestepCorrection", false);
+        
+    return true;
 }
 
 
@@ -99,7 +101,7 @@ void Foam::solvers::OpenPDAC::correctCoNum()
     }
     
 
-    CoNum = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
+    CoNum_ = 0.5*gMax(sumPhi/mesh.V().field())*runTime.deltaTValue();
 
     const scalar meanCoNum =
         0.5*(gSum(sumPhi)/gSum(mesh.V().field()))*runTime.deltaTValue();
@@ -125,6 +127,11 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
 :
     fluidSolver(mesh),
 
+    predictMomentum
+    (
+        pimple.dict().lookupOrDefault<Switch>("momentumPredictor", false)
+    ),
+
     faceMomentum
     (
         pimple.dict().lookupOrDefault<Switch>("faceMomentum", false)
@@ -133,11 +140,6 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     dragCorrection
     (
         pimple.dict().lookupOrDefault<Switch>("dragCorrection", false)
-    ),
-
-    partialElimination
-    (
-        pimple.dict().lookupOrDefault<Switch>("partialElimination", false)
     ),
 
     nEnergyCorrectors
@@ -266,7 +268,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     phi(phi_)    
 {
     // Read the controls
-    readControls();
+    read();
 
     mesh.schemes().setFluxRequired(p_rgh.name());
 
@@ -386,9 +388,6 @@ Foam::solvers::OpenPDAC::~OpenPDAC()
 
 void Foam::solvers::OpenPDAC::preSolve()
 {
-    // Read the controls
-    readControls();
-
     if (transient())
     {
         correctCoNum();
@@ -425,7 +424,7 @@ void Foam::solvers::OpenPDAC::prePredictor()
 {
     if (pimple.thermophysics() || pimple.flow())
     {
-        fluid_.solve(rAUs, rAUfs);
+        fluid_.solve(rAs);
         fluid_.correct();
         fluid_.correctContinuityError();
     }

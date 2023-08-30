@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2013-2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2013-2023 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -41,11 +41,7 @@ License
 
 // * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
 
-void Foam::phaseSystem::solve
-(
-    const PtrList<volScalarField>& rAUs,
-    const PtrList<surfaceScalarField>& rAUfs
-)
+void Foam::phaseSystem::solve(const PtrList<volScalarField>& rAs)
 {
     const dictionary& alphaControls = mesh_.solution().solverDict("alpha");
 
@@ -251,9 +247,9 @@ void Foam::phaseSystem::solve
             PtrList<surfaceScalarField> alphaPhis(phases().size());
 
             tmp<surfaceScalarField> alphaDByAf;
-            if (implicitPhasePressure() && (rAUs.size() || rAUfs.size()))
+            if (implicitPhasePressure() && (rAs.size()))
             {
-                alphaDByAf = this->alphaDByAf(rAUs, rAUfs);
+                alphaDByAf = this->alphaDByAf(rAs);
             }
 
             forAll(movingPhases(), movingPhasei)
@@ -454,7 +450,7 @@ void Foam::phaseSystem::solve
             if (alphaDByAf.valid())
             {
                 // Update alphaDByAf due to changes in alpha
-                alphaDByAf = this->alphaDByAf(rAUs, rAUfs);
+                alphaDByAf = this->alphaDByAf(rAs);
 
                 forAll(solvePhases, solvePhasei)
                 {
@@ -473,15 +469,12 @@ void Foam::phaseSystem::solve
                 }
             }
 
-            // TODO: update alphasmax and rescale sum(alfas) if > alfasmax
-            // and then set alfac = 1 - sum(alfas)
-
             // Report the phase fractions and the phase fraction sum
             forAll(solvePhases, solvePhasei)
             {
                 phaseModel& phase = solvePhases[solvePhasei];
 
-                Info<< phase.name() << " fraction mean, min, max = "
+                Info<< phase.name() << " fraction weightedAverage, min, max = "
                     << phase.weightedAverage(mesh_.V()).value()
                     << ' ' << min(phase).value()
                     << ' ' << max(phase).value()

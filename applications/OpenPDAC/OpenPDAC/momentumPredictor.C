@@ -40,8 +40,6 @@ void Foam::solvers::OpenPDAC::cellMomentumPredictor()
     phaseSystem::momentumTransferTable&
         momentumTransfer(momentumTransferPtr());
 
-    const PtrList<volScalarField> Kds(fluid.Kds());
-
     forAll(fluid.movingPhases(), movingPhasei)
     {
         phaseModel& phase = fluid.movingPhases()[movingPhasei];
@@ -59,7 +57,7 @@ void Foam::solvers::OpenPDAC::cellMomentumPredictor()
              ==
                *momentumTransfer[phase.name()]
               + fvModels().source(alpha, rho, U)
-                // - fvm::Sp(Kds[phase.index()], U)
+
             )
         );
 

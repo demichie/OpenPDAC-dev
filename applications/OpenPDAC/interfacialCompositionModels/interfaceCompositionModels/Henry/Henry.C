@@ -100,13 +100,12 @@ Foam::tmp<Foam::volScalarField> Foam::interfaceCompositionModels::Henry::Yf
 
         return
             k_[index]
-           *otherComposition().Y(speciesName)
-           *otherThermo().rho()
-           /thermo().rho();
+           *otherMulticomponentThermo().Y(speciesName)
+           *otherThermo().rho()/thermo().rho();
     }
     else
     {
-        return YSolvent_*composition().Y(speciesName);
+        return YSolvent_*thermo().Y(speciesName);
     }
 }
 

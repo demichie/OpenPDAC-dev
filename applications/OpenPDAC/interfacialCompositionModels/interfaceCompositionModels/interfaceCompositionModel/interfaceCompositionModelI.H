@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2019-2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2019-2023 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -24,6 +24,7 @@ License
 \*---------------------------------------------------------------------------*/
 
 #include "interfaceCompositionModel.H"
+#include "rhoFluidMulticomponentThermo.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -40,36 +41,23 @@ const Foam::hashedWordList& Foam::interfaceCompositionModel::species() const
 }
 
 
-const Foam::rhoMulticomponentThermo&
+const Foam::rhoFluidMulticomponentThermo&
 Foam::interfaceCompositionModel::thermo() const
 {
     return thermo_;
 }
 
 
-const Foam::basicSpecieMixture&
-Foam::interfaceCompositionModel::composition() const
-{
-    return thermo_.composition();
-}
-
-
-const Foam::rhoThermo& Foam::interfaceCompositionModel::otherThermo() const
+const Foam::rhoFluidThermo& Foam::interfaceCompositionModel::otherThermo() const
 {
     return otherThermo_;
 }
 
 
-bool Foam::interfaceCompositionModel::otherHasComposition() const
+const Foam::rhoFluidMulticomponentThermo&
+Foam::interfaceCompositionModel::otherMulticomponentThermo() const
 {
-    return isA<rhoMulticomponentThermo>(otherThermo_);
-}
-
-
-const Foam::basicSpecieMixture&
-Foam::interfaceCompositionModel::otherComposition() const
-{
-    return refCast<const rhoMulticomponentThermo>(otherThermo_).composition();
+    return refCast<const rhoFluidMulticomponentThermo>(otherThermo_);
 }
 
 
