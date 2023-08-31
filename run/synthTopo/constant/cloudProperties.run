@@ -90,7 +90,11 @@ subModels
             {
                 type escape;
             }
-            terrain
+            terrain_in
+            {
+                type escape;
+            }
+            terrain_out
             {
                 type stick;
             }
