@@ -17,4 +17,4 @@ interfaceCompositionModels/saturated/saturated.C
 interfaceSaturationTemperatureModel/interfaceSaturationTemperatureModel.C
 interfaceSaturationTemperatureModel/interfaceSaturationTemperatureModelNew.C
 
-LIB = $(FOAM_USER_LIBBIN)/libeulerianInterfacialCompositionModels
+LIB = $(FOAM_USER_LIBBIN)/libOpenPDACeulerianInterfacialCompositionModels

@@ -32,4 +32,4 @@ kineticTheoryModels/frictionalStressModel/JohnsonJacksonSchaeffer/JohnsonJackson
 derivedFvPatchFields/JohnsonJacksonParticleSlip/JohnsonJacksonParticleSlipFvPatchVectorField.C
 derivedFvPatchFields/JohnsonJacksonParticleTheta/JohnsonJacksonParticleThetaFvPatchScalarField.C
 
-LIB = $(FOAM_USER_LIBBIN)/libmultiphaseMomentumTransportModels
+LIB = $(FOAM_USER_LIBBIN)/libOpenPDACmultiphaseMomentumTransportModels

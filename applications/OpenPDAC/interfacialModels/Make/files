@@ -74,4 +74,4 @@ phaseTransferModels/cavitation/cavitation.C
 phaseTransferModels/deposition/deposition.C
 phaseTransferModels/reactionDriven/reactionDriven.C
 
-LIB = $(FOAM_USER_LIBBIN)/libeulerianInterfacialModels
+LIB = $(FOAM_USER_LIBBIN)/libOpenPDACeulerianInterfacialModels

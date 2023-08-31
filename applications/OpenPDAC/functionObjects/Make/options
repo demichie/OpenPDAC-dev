@@ -18,13 +18,13 @@ EXE_INC = \
 
 LIB_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
-    -lphaseSystem \
-    -lmultiphaseSystems \
-    -leulerianInterfacialModels \
-    -leulerianInterfacialCompositionModels \
-    -lmultiphaseMomentumTransportModels \
-    -lmultiphaseThermophysicalTransportModels \
-    -lmultiphaseReactions \
+    -lOpenPDACphaseSystem \
+    -lOpenPDACmultiphaseSystems \
+    -lOpenPDACeulerianInterfacialModels \
+    -lOpenPDACeulerianInterfacialCompositionModels \
+    -lOpenPDACmultiphaseMomentumTransportModels \
+    -lOpenPDACmultiphaseThermophysicalTransportModels \
+    -lOpenPDACmultiphaseReactions \
     -lmultiphaseProperties \
     -lphaseFluidThermophysicalTransportModels \
     -lphaseFluidMulticomponentThermophysicalTransportModels \

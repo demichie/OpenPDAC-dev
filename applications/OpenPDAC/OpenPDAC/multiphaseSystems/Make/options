@@ -22,5 +22,5 @@ EXE_INC = \
 LIB_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
     -lcombustionModels \
-    -lphaseSystem \
-    -leulerianInterfacialModels
+    -lOpenPDACphaseSystem \
+    -lOpenPDACeulerianInterfacialModels

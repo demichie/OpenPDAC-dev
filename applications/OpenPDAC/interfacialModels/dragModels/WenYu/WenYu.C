@@ -67,6 +67,7 @@ Foam::tmp<Foam::volScalarField> Foam::dragModels::WenYu::CdRe() const
     );
 
     const volScalarField Res(alpha2*interface_.Re());
+    
     const volScalarField CdsRes
     (
         neg(Res - 1000)*24*(1.0 + 0.15*pow(Res, 0.687))

@@ -2,4 +2,4 @@ phaseForces/phaseForces.C
 phaseMap/phaseMap.C
 wallBoilingProperties/wallBoilingProperties.C
 
-LIB = $(FOAM_USER_LIBBIN)/libmultiphaseEulerFoamFunctionObjects
+LIB = $(FOAM_USER_LIBBIN)/libOpenPDACFunctionObjects

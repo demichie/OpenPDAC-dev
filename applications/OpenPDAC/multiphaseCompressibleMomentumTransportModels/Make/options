@@ -18,7 +18,7 @@ EXE_INC = \
 
 LIB_LIBS = \
     -L$(FOAM_USER_LIBBIN) \
-    -lphaseSystem \
-    -leulerianInterfacialModels \
-    -leulerianInterfacialCompositionModels \
+    -lOpenPDACphaseSystem \
+    -lOpenPDACeulerianInterfacialModels \
+    -lOpenPDACeulerianInterfacialCompositionModels \
     -lphaseCompressibleMomentumTransportModels

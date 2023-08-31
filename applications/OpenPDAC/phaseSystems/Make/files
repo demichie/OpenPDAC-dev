@@ -37,4 +37,4 @@ BlendedInterfacialModel/blendingMethods/hyperbolic/hyperbolic.C
 BlendedInterfacialModel/blendingMethods/continuous/continuous.C
 BlendedInterfacialModel/blendingMethods/segregatedBlendingMethod/segregatedBlendingMethod.C
 
-LIB = $(FOAM_USER_LIBBIN)/libphaseSystem
+LIB = $(FOAM_USER_LIBBIN)/libOpenPDACphaseSystem

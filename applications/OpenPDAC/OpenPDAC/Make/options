@@ -22,12 +22,12 @@ LIB_LIBS = \
     -llagrangian \
     -llagrangianParcel \
     -lfluidSolver \
-    -lphaseSystem \
-    -lmultiphaseSystems \
-    -leulerianInterfacialModels \
-    -leulerianInterfacialCompositionModels \
-    -lmultiphaseThermophysicalTransportModels \
-    -lmultiphaseReactions \
+    -lOpenPDACphaseSystem \
+    -lOpenPDACmultiphaseSystems \
+    -lOpenPDACeulerianInterfacialModels \
+    -lOpenPDACeulerianInterfacialCompositionModels \
+    -lOpenPDACmultiphaseThermophysicalTransportModels \
+    -lOpenPDACmultiphaseReactions \
     -lmultiphaseProperties \
     -lphaseFluidThermophysicalTransportModels \
     -lphaseFluidMulticomponentThermophysicalTransportModels \
