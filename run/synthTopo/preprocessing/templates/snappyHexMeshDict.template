@@ -28,10 +28,10 @@ addLayers       true;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {
-    surface.stl
+    surface_in.stl
     {
         type triSurfaceMesh;
-        name terrain;
+        name terrain_in;
     }
 
     surface_out.stl
@@ -101,7 +101,7 @@ castellatedMeshControls
     // Number of buffer layers between different levels.
     // 1 means normal 2:1 refinement restriction, larger means slower
     // refinement.
-    nCellsBetweenLevels 10;
+    nCellsBetweenLevels 3;
 
 
 
@@ -131,18 +131,15 @@ castellatedMeshControls
 
     refinementSurfaces
     {
-        terrain
+        terrain_in
         {
             // Surface-wise min and max refinement level
-            level (2 2);
-
-            // Optional specification of patch type (default is wall). No
-            // constraint types (cyclic, symmetry) etc. are allowed.
-            /*patchInfo
-            {
-                type wall;
-                inGroups (motorBikeGroup);
-            }*/
+            level (4 4);
+        }
+        terrain_out
+        {
+            // Surface-wise min and max refinement level
+            level (4 4);
         }
     }
 
@@ -248,7 +245,11 @@ addLayersControls
     // Per final patch (so not geometry!) the layer information
     layers
     {
-        "(terrain_out).*"
+        "terrain_out"
+        {
+            nSurfaceLayers 3;
+        }
+        "terrain_in"
         {
             nSurfaceLayers 2;
         }
@@ -261,7 +262,7 @@ addLayersControls
     // is the thickness of the layer furthest away from the wall.
     // Relative to undistorted size of cell outside layer.
     // See relativeSizes parameter.
-    finalLayerThickness 0.5;
+    finalLayerThickness 0.6;
 
     // Minimum thickness of cell layer. If for any reason layer
     // cannot be above minThickness do not add layer.
@@ -278,7 +279,7 @@ addLayersControls
 
     // When not to extrude surface. 0 is flat surface, 90 is when two faces
     // are perpendicular
-    featureAngle 60;
+    featureAngle 150;
 
     // At non-patched sides allow mesh to slip if extrusion direction makes
     // angle larger than slipFeatureAngle.
@@ -289,7 +290,7 @@ addLayersControls
     nRelaxIter 10;
 
     // Number of smoothing iterations of surface normals
-    nSmoothSurfaceNormals 1;
+    nSmoothSurfaceNormals 10;
 
     // Number of smoothing iterations of interior mesh movement direction
     nSmoothNormals 10;
@@ -306,7 +307,7 @@ addLayersControls
 
     // Angle used to pick up medial axis points
     // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130 in 17x.
-    minMedianAxisAngle 80;
+    minMedianAxisAngle 90;
 
 
     // Create buffer region for new layer terminations
