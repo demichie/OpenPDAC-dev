@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2014-2023 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2014-2024 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -75,8 +75,8 @@ Foam::tmp<Foam::volScalarField> Foam::dragModels::segregated::K() const
     const volScalarField::Internal& rho1(interface_.phase1().rho());
     const volScalarField::Internal& rho2(interface_.phase2().rho());
 
-    tmp<volScalarField> tnu1(interface_.phase1().thermo().nu());
-    tmp<volScalarField> tnu2(interface_.phase2().thermo().nu());
+    tmp<volScalarField> tnu1(interface_.phase1().fluidThermo().nu());
+    tmp<volScalarField> tnu2(interface_.phase2().fluidThermo().nu());
 
     const volScalarField::Internal& nu1(tnu1());
     const volScalarField::Internal& nu2(tnu2());
@@ -126,7 +126,7 @@ Foam::tmp<Foam::volScalarField> Foam::dragModels::segregated::K() const
     const volScalarField::Internal muAlphaI
     (
         limitedAlpha1*rho1*nu1*limitedAlpha2*rho2*nu2
-       /(limitedAlpha1*rho1*nu1 + limitedAlpha2*rho2*nu2)
+       /(limitedAlpha2*rho1*nu1 + limitedAlpha1*rho2*nu2)
     );
 
     const volScalarField::Internal ReI
@@ -148,7 +148,7 @@ Foam::tmp<Foam::volScalarField> Foam::dragModels::segregated::K() const
         )
     );
 
-    tK.ref().ref() = lambda*sqr(magGradI)*muI;
+    tK.ref().internalFieldRef() = lambda*sqr(magGradI)*muI;
     tK.ref().correctBoundaryConditions();
 
     return tK;

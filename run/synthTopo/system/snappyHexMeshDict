@@ -28,30 +28,30 @@ addLayers       true;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {
-surface.stl
+terrain_in
 {
 type triSurfaceMesh;
-name terrain;
+file "surface_in.stl";
 }
 
-surface_out.stl
+terrain_out
 {
 type triSurfaceMesh;
-name terrain_out;
-}
-
-
-surface_crater_closed.stl
-{
-type triSurfaceMesh;
-name crater;
+file "surface_out.stl";
 }
 
 
-surface_conduit_closed.stl
+crater
 {
 type triSurfaceMesh;
-name conduit;
+file "surface_crater_closed.stl";
+}
+
+
+conduit
+{
+type triSurfaceMesh;
+file "surface_conduit_closed.stl";
 }
 
 
@@ -101,7 +101,7 @@ maxLoadUnbalance 0.1;
 // Number of buffer layers between different levels.
 // 1 means normal 2:1 refinement restriction, larger means slower
 // refinement.
-nCellsBetweenLevels 10;
+nCellsBetweenLevels 3;
 
 
 
@@ -112,10 +112,10 @@ nCellsBetweenLevels 10;
 // This is a featureEdgeMesh, read from constant/triSurface for now.
 features
 (
-/*{
-file "motorBike.eMesh";
-level 6;
-}*/
+{
+file "surface_in.eMesh";
+level 5;
+}
 );
 
 
@@ -131,18 +131,15 @@ level 6;
 
 refinementSurfaces
 {
-terrain
+terrain_in
 {
 // Surface-wise min and max refinement level
-level (2 2);
-
-// Optional specification of patch type (default is wall). No
-// constraint types (cyclic, symmetry) etc. are allowed.
-/*patchInfo
+level (3 3);
+}
+terrain_out
 {
-type wall;
-inGroups (motorBikeGroup);
-}*/
+// Surface-wise min and max refinement level
+level (3 3);
 }
 }
 
@@ -210,27 +207,27 @@ nSmoothPatch 5;
 //- Relative distance for points to be attracted by surface feature point
 //  or edge. True distance is this factor times local
 //  maximum edge length.
-tolerance 10.0;
+tolerance 2.0;
 
 //- Number of mesh displacement relaxation iterations.
-nSolveIter 10;
+nSolveIter 200;
 
 //- Maximum number of snapping relaxation iterations. Should stop
 //  before upon reaching a correct mesh.
-nRelaxIter 5;
+nRelaxIter 20;
 
 // Feature snapping
 
 //- Number of feature edge snapping iterations.
 //  Leave out altogether to disable.
-nFeatureSnapIter 10;
+nFeatureSnapIter 20;
 
 //- Detect (geometric only) features by sampling the surface
 //  (default=false).
-implicitFeatureSnap true;
+implicitFeatureSnap false;
 
 //- Use castellatedMeshControls::features (default = true)
-explicitFeatureSnap false;
+explicitFeatureSnap true;
 
 //- Detect points on multiple surfaces (only for explicitFeatureSnap)
 multiRegionFeatureSnap true;
@@ -248,14 +245,18 @@ relativeSizes true;
 // Per final patch (so not geometry!) the layer information
 layers
 {
-"(terrain_out).*"
+"terrain_out"
 {
-nSurfaceLayers 2;
+nSurfaceLayers 1;
+}
+"terrain_in"
+{
+nSurfaceLayers 0;
 }
 }
 
 // Expansion factor for layer mesh
-expansionRatio 1.2;
+expansionRatio 1.0;
 
 // Wanted thickness of final added cell layer. If multiple layers
 // is the thickness of the layer furthest away from the wall.
@@ -278,7 +279,7 @@ nGrow 0;
 
 // When not to extrude surface. 0 is flat surface, 90 is when two faces
 // are perpendicular
-featureAngle 60;
+featureAngle 170;
 
 // At non-patched sides allow mesh to slip if extrusion direction makes
 // angle larger than slipFeatureAngle.
@@ -286,27 +287,27 @@ slipFeatureAngle 30;
 
 // Maximum number of snapping relaxation iterations. Should stop
 // before upon reaching a correct mesh.
-nRelaxIter 10;
+nRelaxIter 15;
 
 // Number of smoothing iterations of surface normals
-nSmoothSurfaceNormals 1;
+nSmoothSurfaceNormals 15;
 
 // Number of smoothing iterations of interior mesh movement direction
-nSmoothNormals 10;
+nSmoothNormals 15;
 
 // Smooth layer thickness over surface patches
-nSmoothThickness 10;
+nSmoothThickness 15;
 
 // Stop layer growth on highly warped cells
-maxFaceThicknessRatio 0.5;
+maxFaceThicknessRatio 0.75;
 
 // Reduce layer growth where ratio thickness to medial
 // distance is large
-maxThicknessToMedialRatio 0.3;
+maxThicknessToMedialRatio 0.5;
 
 // Angle used to pick up medial axis points
 // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130 in 17x.
-minMedianAxisAngle 80;
+minMedianAxisAngle 90;
 
 
 // Create buffer region for new layer terminations

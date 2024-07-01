@@ -131,11 +131,13 @@ PIMPLE
     nCorrectors         1;
     nNonOrthogonalCorrectors 2;
     nEnergyCorrectors   1;
-    faceMomentum        on;
     hydrostaticInitialisation true;
     nHydrostaticCorrectors 20;
-    partialElimination  true;
+    faceMomentum        no;
+    dragCorrection      yes;
+    momentumPredictor   no;    
 }
+
 
 relaxationFactors
 {

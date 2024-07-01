@@ -18,7 +18,7 @@ application     foamRun;
 
 solver          OpenPDAC;
 
-startFrom       latestTime;
+startFrom       startTime;
 
 startTime       0;
 

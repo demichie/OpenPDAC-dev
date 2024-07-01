@@ -61,55 +61,10 @@ subModels
 	{
             phi    1.0;
         }
-        gravity;
     }
 
     injectionModels
     {
-        /*model1
-        {
-            type            patchInjection;
-            parcelBasisType fixed;
-            patchName       inlet;
-            U0              (0 100 0);
-            nParticle       1;
-            parcelsPerSecond 100;
-            sizeDistribution
-            {
-                type        normal;
-                normalDistribution
-                {
-                    expectation 500e-6;
-                    variance 300e-6;
-                    minValue 1e-6;
-                    maxValue 1000e-6;
-                }
-            }
-            flowRateProfile constant 1;
-            massTotal       0;
-            SOI 0;
-            duration 60;
-        }
-        model2
-        {
-            type            manualInjection;
-            massTotal       0; //unused when parcelBasisType=fixed.
-            parcelBasisType fixed;
-            nParticle       1; //number of particles per parcel
-            SOI             0; //start-time of the injection
-            positionsFile   "cloudPositions";
-            U0              (0 0 0);
-            sizeDistribution
-            {
-                //type uniform;
-                type fixedValue;
-                fixedValueDistribution
-                {
-                    value        0.5e-01;
-                }
-            }
-        }
-        */
         model3
         {
             type cellZoneInjection;
@@ -121,14 +76,21 @@ subModels
             numberDensity 1e-1; // numberDensity multiplied by cellZoneVolume gives the number of particles to be injected
             duration 5e-5; //cellZoneInjection through this manner is a one time injection, i.e., all the particles will be injected at once
             U0 (0 0 0); //initial velocity of the particles upon injection
-            massTotal 0; // Total mass injected over injection duration
+            sfericity 0.85; // Total mass injected over injection duration
             sizeDistribution
             {
-                //type uniform;
                 type fixedValue;
                 fixedValueDistribution
                 {
                     value        1.0e-01;
+                }
+            }
+            densityDistribution
+            {
+                type fixedValue;
+                fixedValueDistribution
+                {
+                    value        2300;
                 }
             }
         }
@@ -143,14 +105,21 @@ subModels
             numberDensity 1e-1; // numberDensity multiplied by cellZoneVolume gives the number of particles to be injected
             duration 5e-5; //cellZoneInjection through this manner is a one time injection, i.e., all the particles will be injected at once
             U0 (0 0 0); //initial velocity of the particles upon injection
-            massTotal 0; // Total mass injected over injection duration
+            sfericity 0.80; // Total mass injected over injection duration
             sizeDistribution
             {
-                //type uniform;
                 type fixedValue;
                 fixedValueDistribution
                 {
                     value        0.5e-01;
+                }
+            }
+            densityDistribution
+            {
+                type fixedValue;
+                fixedValueDistribution
+                {
+                    value        2300;
                 }
             }
         }

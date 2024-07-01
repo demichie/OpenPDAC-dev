@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2019-2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2019-2023 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -83,7 +83,7 @@ Foam::dragModels::timeScaleFilteredDrag::CdRe() const
        /0.75
        /swarmCorrection_->Cs()
        /interface_.continuous().rho()
-       /interface_.continuous().thermo().nu()
+       /interface_.continuous().fluidThermo().nu()
        /minRelaxTime_
     );
 

@@ -68,10 +68,9 @@ Foam::tmp<Foam::volScalarField> Foam::dragModels::Ergun::CdRe() const
         (4.0/3.0)
        *(
             150
-           *max(1 - continuous, dispersed.residualAlpha())
+           *max(1.0 - continuous, dispersed.residualAlpha())
            /max(continuous, continuous.residualAlpha())
-          + 1.75
-           *interface_.Re()
+          + 1.75*interface_.Re()
         );
 }
 

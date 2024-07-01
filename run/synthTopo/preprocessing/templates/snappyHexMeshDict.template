@@ -28,30 +28,30 @@ addLayers       true;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {
-    surface_in.stl
+    terrain_in
     {
         type triSurfaceMesh;
-        name terrain_in;
+        file "surface_in.stl";
     }
 
-    surface_out.stl
+    terrain_out
     {
         type triSurfaceMesh;
-        name terrain_out;
+        file "surface_out.stl";
     }
 
     
-    surface_crater_closed.stl
+    crater
       {
         type triSurfaceMesh;
-        name crater;
+        file "surface_crater_closed.stl";
       }
 
     
-    surface_conduit_closed.stl
+    conduit
       {
         type triSurfaceMesh;
-        name conduit;
+        file "surface_conduit_closed.stl";
       }
       
       
@@ -112,10 +112,10 @@ castellatedMeshControls
     // This is a featureEdgeMesh, read from constant/triSurface for now.
     features
     (
-        /*{
-            file "motorBike.eMesh";
-            level 6;
-        }*/
+        {
+            file "surface_in.eMesh";
+            level 5;
+        }
     );
 
 
@@ -134,12 +134,12 @@ castellatedMeshControls
         terrain_in
         {
             // Surface-wise min and max refinement level
-            level (4 4);
+            level (3 3);
         }
         terrain_out
         {
             // Surface-wise min and max refinement level
-            level (4 4);
+            level (3 3);
         }
     }
 
@@ -207,27 +207,27 @@ snapControls
     //- Relative distance for points to be attracted by surface feature point
     //  or edge. True distance is this factor times local
     //  maximum edge length.
-    tolerance 10.0;
+    tolerance 2.0;
 
     //- Number of mesh displacement relaxation iterations.
-    nSolveIter 10;
+    nSolveIter 200;
 
     //- Maximum number of snapping relaxation iterations. Should stop
     //  before upon reaching a correct mesh.
-    nRelaxIter 5;
+    nRelaxIter 20;
 
     // Feature snapping
 
         //- Number of feature edge snapping iterations.
         //  Leave out altogether to disable.
-        nFeatureSnapIter 10;
+        nFeatureSnapIter 20;
 
         //- Detect (geometric only) features by sampling the surface
         //  (default=false).
-        implicitFeatureSnap true;
+        implicitFeatureSnap false;
 
         //- Use castellatedMeshControls::features (default = true)
-        explicitFeatureSnap false;
+        explicitFeatureSnap true;
 
         //- Detect points on multiple surfaces (only for explicitFeatureSnap)
         multiRegionFeatureSnap true;
@@ -247,22 +247,22 @@ addLayersControls
     {
         "terrain_out"
         {
-            nSurfaceLayers 3;
+            nSurfaceLayers 1;
         }
         "terrain_in"
         {
-            nSurfaceLayers 2;
+            nSurfaceLayers 0;
         }
     }
 
     // Expansion factor for layer mesh
-    expansionRatio 1.2;
+    expansionRatio 1.0;
 
     // Wanted thickness of final added cell layer. If multiple layers
     // is the thickness of the layer furthest away from the wall.
     // Relative to undistorted size of cell outside layer.
     // See relativeSizes parameter.
-    finalLayerThickness 0.6;
+    finalLayerThickness 0.5;
 
     // Minimum thickness of cell layer. If for any reason layer
     // cannot be above minThickness do not add layer.
@@ -279,7 +279,7 @@ addLayersControls
 
     // When not to extrude surface. 0 is flat surface, 90 is when two faces
     // are perpendicular
-    featureAngle 150;
+    featureAngle 170;
 
     // At non-patched sides allow mesh to slip if extrusion direction makes
     // angle larger than slipFeatureAngle.
@@ -287,23 +287,23 @@ addLayersControls
 
     // Maximum number of snapping relaxation iterations. Should stop
     // before upon reaching a correct mesh.
-    nRelaxIter 10;
+    nRelaxIter 15;
 
     // Number of smoothing iterations of surface normals
-    nSmoothSurfaceNormals 10;
+    nSmoothSurfaceNormals 15;
 
     // Number of smoothing iterations of interior mesh movement direction
-    nSmoothNormals 10;
+    nSmoothNormals 15;
 
     // Smooth layer thickness over surface patches
-    nSmoothThickness 10;
+    nSmoothThickness 15;
 
     // Stop layer growth on highly warped cells
-    maxFaceThicknessRatio 0.5;
+    maxFaceThicknessRatio 0.75;
 
     // Reduce layer growth where ratio thickness to medial
     // distance is large
-    maxThicknessToMedialRatio 0.3;
+    maxThicknessToMedialRatio 0.5;
 
     // Angle used to pick up medial axis points
     // Note: changed(corrected) w.r.t 17x! 90 degrees corresponds to 130 in 17x.

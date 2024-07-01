@@ -28,30 +28,30 @@ addLayers       true;
 // - to 'snap' the mesh boundary to the surface
 geometry
 {
-    surface.stl
+    terrain
     {
         type triSurfaceMesh;
-        name terrain;
+        file "surface.stl";
     }
 
-    surface_out.stl
+    terrain_out
     {
         type triSurfaceMesh;
-        name terrain_out;
+        file "surface_out.stl";
     }
 
     
-    surface_crater_closed.stl
+    crater
       {
         type triSurfaceMesh;
-        name crater;
+        file "surface_crater_closed.stl";
       }
 
     
-    surface_conduit_closed.stl
+    conduit
       {
         type triSurfaceMesh;
-        name conduit;
+        file "surface_conduit_closed.stl";
       }
       
       

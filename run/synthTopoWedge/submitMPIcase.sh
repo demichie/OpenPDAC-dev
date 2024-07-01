@@ -1,8 +1,7 @@
-# module load openFOAM-10
-# source $FOAM_BASHRC
-
 rm -rf constant/triSurface/*
 foamCleanCase
+
+touch case.foam
 
 cd preprocessing
 python3 ASCtoSTL.py
@@ -26,6 +25,7 @@ topoSet -dict topoSetDict-conduit
 
 cp ./system/fvSolution.init ./system/fvSolution
 cp ./constant/cloudProperties.init ./constant/cloudProperties
+cp ./system/controlDict.init ./system/controlDict
 
 rm -rf 0
 cp -r org.0 0
@@ -47,14 +47,14 @@ cp ./constant/cloudProperties.run ./constant/cloudProperties
 #squeue
 
 #FOR PARALLEL RUN ON PC:
-decomposePar
-mpirun -np xx foamRun -parallel
-reconstructPar -newTimes -fields '(p U.gas alpha.particles)' -lagrangianFields '(U d)'
-foamToVTK -fields '()' -noInternal -noFaceZones -excludePatches '(atm top terrain)'
+# decomposePar
+# mpirun -np xx foamRun -parallel
 
 #FOR SCALAR RUN:
 foamRun
 
+reconstructPar -newTimes -fields '(p U.gas alpha.particles)' -lagrangianFields '(U d)'
+foamToVTK -fields '()' -noInternal -noFaceZones -excludePatches '(atm top terrain)'
 
 python plotBallistics.py
 

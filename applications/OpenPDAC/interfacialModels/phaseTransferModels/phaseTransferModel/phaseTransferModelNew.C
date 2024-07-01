@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2018-2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2018-2023 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -47,7 +47,7 @@ Foam::autoPtr<Foam::phaseTransferModel> Foam::phaseTransferModel::New
     if (cstrIter == dictionaryConstructorTablePtr_->end())
     {
         FatalErrorInFunction
-            << "Unknown phaseTransferModelType type "
+            << "Unknown phaseTransferModel type "
             << phaseTransferModelType << endl << endl
             << "Valid phaseTransferModel types are : " << endl
             << dictionaryConstructorTablePtr_->sortedToc()

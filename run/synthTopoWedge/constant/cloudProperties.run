@@ -36,6 +36,7 @@ solution
         rho             cell;
         U               cellPoint;
         muMix           cell;
+        gradP           cell;
     }
 
     integrationSchemes
@@ -57,12 +58,15 @@ subModels
 {
     particleForces
     {
-        nonSphereDrag
-	{
-	  phi    1.0;
-        }
+        NonSphereDragVarPhi
+        {}
         gravity;
+        PressureGradientP
+        {
+            P     p;
+        }
     }
+
     
     injectionModels
     {

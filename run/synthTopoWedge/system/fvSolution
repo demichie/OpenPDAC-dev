@@ -54,13 +54,6 @@ solvers
         relTol          0;
     }
 
-    p_rghFinal
-    {
-        $p_rgh;
-        tolerance           1e-6;
-        relTol              0;
-    };
-
     ph_rgh
     {
         $p_rgh;
@@ -128,15 +121,17 @@ solvers
 PIMPLE
 {
     nOuterCorrectors    5;
-    nCorrectors         3;
-    nNonOrthogonalCorrectors 3;
+    nCorrectors         4;
+    nNonOrthogonalCorrectors 2;
     nEnergyCorrectors   3;
-    faceMomentum        on;
     hydrostaticInitialisation false;
     nHydrostaticCorrectors 20;
-    partialElimination  true;
     lowPressureTimestepCorrection on;
+    faceMomentum        no;
+    dragCorrection      yes;
+    momentumPredictor   no;   
 }
+
 
 relaxationFactors
 {

@@ -6,6 +6,8 @@ cp ./system/fvSolution.init ./system/fvSolution
 blockMesh 
 checkMesh -allTopology -allGeometry
 
+touch case.foam
+
 changeDictionary
 
 rm -rf 0

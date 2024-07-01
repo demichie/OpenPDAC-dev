@@ -1,4 +1,4 @@
-# module load openFOAM-10
+# module load openFOAM-12
 # source $FOAM_BASHRC
 
 rm -rf constant/triSurface/*
@@ -6,7 +6,7 @@ foamCleanCase
 
 cd preprocessing
 python3 ASCtoSTL.py
-# python createSphere.py
+
 cd ..
 surfaceCheck constant/triSurface/surface_crater_closed.stl
 surfaceCheck constant/triSurface/surface_conduit_closed.stl
@@ -16,6 +16,8 @@ cp ./system/controlDict.init ./system/controlDict
 blockMesh 
 checkMesh -allTopology -allGeometry
 
+touch case.foam
+
 snappyHexMesh -overwrite
 extrudeMesh
 changeDictionary
@@ -24,6 +26,7 @@ checkMesh -allTopology -allGeometry
 
 topoSet -dict topoSetDict-conduit
 
+cp ./system/controlDict.init ./system/controlDict
 cp ./system/fvSolution.init ./system/fvSolution
 cp ./constant/cloudProperties.init ./constant/cloudProperties
 
@@ -47,10 +50,10 @@ cp ./constant/cloudProperties.run ./constant/cloudProperties
 #squeue
 
 #FOR PARALLEL RUN ON PC:
-decomposePar
-mpirun -np xx foamRun -parallel
-reconstructPar -newTimes -fields '(p U.gas alpha.particles)' -lagrangianFields '(U d)'
-foamToVTK -fields '()' -noInternal -noFaceZones -excludePatches '(atm top terrain)'
+# decomposePar
+# mpirun -np xx foamRun -parallel
+# reconstructPar -newTimes -fields '(p U.gas alpha.particles)' -lagrangianFields '(U d)'
+# foamToVTK -fields '()' -noInternal -noFaceZones -excludePatches '(atm top terrain)'
 
 #FOR SCALAR RUN:
 foamRun
