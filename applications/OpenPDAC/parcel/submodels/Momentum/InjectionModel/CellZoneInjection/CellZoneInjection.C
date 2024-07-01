@@ -185,9 +185,10 @@ Foam::CellZoneInjection<CloudType>::CellZoneInjection
     (
         distribution::New
         (
+            dimMass,
             this->coeffDict().subDict("densityDistribution"),
-            owner.rndGen(),
-            this->sizeSampleQ()
+            this->sizeSampleQ(),
+            owner.rndGen().generator()
         )
     )
 {
