@@ -79,21 +79,19 @@ subModels
             U0 (0 0 0); //initial velocity of the particles upon injection
             sizeDistribution
             {
-                //type uniform;
-                type fixedValue;
-                fixedValueDistribution
-                {
-                    value        1.0e-01;
-                }
+                type        uniform;
+                Q            0;
+                minValue   0.1;
+                maxValue   0.3;
             }
+
             densityDistribution
             {
-                type        fixedValue;
-                fixedValueDistribution
-                {
-                    value        2300;
-                }
-            }    
+                type        uniform;
+                Q            0;
+                minValue   1800;
+                maxValue   2300;
+            }      
         }
         model4
         {
