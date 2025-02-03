@@ -1,0 +1,301 @@
+/*---------------------------------------------------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Copyright (C) 2022-2024 OpenFOAM Foundation
+     \\/     M anipulation  |
+-------------------------------------------------------------------------------
+License
+    This file is part of OpenFOAM.
+
+    OpenFOAM is free software: you can redistribute it and/or modify it
+    under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    OpenFOAM is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+    for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
+
+\*---------------------------------------------------------------------------*/
+
+#include "OpenPDAC.H"
+#include "fvcDdt.H"
+#include "fvcDiv.H"
+#include "fvcSup.H"
+#include "fvmDdt.H"
+#include "fvmDiv.H"
+#include "fvmSup.H"
+
+// * * * * * * * * * * * * Private Member Functions  * * * * * * * * * * * * //
+
+void Foam::solvers::OpenPDAC::compositionPredictor()
+{
+    autoPtr<phaseSystem::specieTransferTable>
+    specieTransferPtr(fluid.specieTransfer());
+
+    phaseSystem::specieTransferTable&
+    specieTransfer(specieTransferPtr());
+
+    fluid_.correctReactions();
+
+    forAll(fluid.multicomponentPhases(), multicomponentPhasei)
+    {
+        phaseModel& phase = fluid_.multicomponentPhases()[multicomponentPhasei];
+
+        UPtrList<volScalarField>& Y = phase.YRef();
+        const volScalarField& alpha = phase;
+        const volScalarField& rho = phase.rho();
+
+        forAll(Y, i)
+        {
+            if (phase.solveSpecie(i))
+            {
+                fvScalarMatrix YiEqn
+                (
+                    phase.YiEqn(Y[i])
+                 ==
+                   *specieTransfer[Y[i].name()]
+                  + fvModels().source(alpha, rho, Y[i])
+                );
+
+                YiEqn.relax();
+                fvConstraints().constrain(YiEqn);
+                YiEqn.solve("Yi");
+                Y[i] = max(0.0,min(Y[i],1.0));
+                fvConstraints().constrain(Y[i]);
+            }
+            else
+            {
+                Y[i].correctBoundaryConditions();
+            }
+        }
+    }
+
+    fluid_.correctSpecies();
+}
+
+
+void Foam::solvers::OpenPDAC::energyPredictor()
+{
+    autoPtr<phaseSystem::heatTransferTable>
+        heatTransferPtr(fluid.heatTransfer());
+
+    phaseSystem::heatTransferTable& heatTransfer = heatTransferPtr();
+
+    forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+    {
+        phaseModel& phase = fluid_.anisothermalPhases()[anisothermalPhasei];
+
+        const volScalarField& alpha = phase;
+        const volScalarField& rho = phase.rho();
+
+        fvScalarMatrix EEqn
+        (
+            phase.heEqn()
+         ==
+           *heatTransfer[phase.name()] +
+          fvModels().source(alpha, rho, phase.thermo().he())
+        );
+
+        EEqn.relax();
+        fvConstraints().constrain(EEqn);
+        EEqn.solve();
+        fvConstraints().constrain(phase.thermo().he());
+    }
+
+    fluid_.correctThermo();
+    fluid_.correctContinuityError();
+}
+
+
+// * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * * //
+
+void Foam::solvers::OpenPDAC::thermophysicalPredictor()
+{
+    if (pimple.thermophysics())
+    {
+        for (int Ecorr=0; Ecorr<nEnergyCorrectors; Ecorr++)
+        {
+
+            const word&continuousPhaseName_ = fluid.continuousPhaseName();
+            const phaseModel& continuousPhase = fluid.phases()[continuousPhaseName_];
+
+
+            forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+            {
+                const phaseModel& phase =
+                    fluid.anisothermalPhases()[anisothermalPhasei];
+
+                if ( (&phase != &continuousPhase) && correctTdispersed )
+                {
+
+                    volScalarField he1 = phase.thermo().he(p_,phase.thermo().T());
+                    volScalarField he2 = phase.thermo().he(p_,continuousPhase.thermo().T());
+                    volScalarField& heNew = const_cast<volScalarField&>(phase.thermo().he());
+
+                    /*
+                    Info<< "BEFORE CORRECTION" << endl;
+                    Info<< phase.name() << " min/max T "
+                        << min(phase.thermo().T()).value()
+                        << " - "
+                        << max(phase.thermo().T()).value()
+                        << endl;
+                    Info<< continuousPhase.name() << " min/max T "
+                        << min(continuousPhase.thermo().T()).value()
+                        << " - "
+                        << max(continuousPhase.thermo().T()).value()
+                        << endl;
+                    */    
+                    
+                    heNew = pos0(phase-phase.residualAlpha())*he1 
+                            + neg(phase-phase.residualAlpha())*he2;
+
+
+                    /*
+
+                    volScalarField::Boundary& bf = heNew.boundaryFieldRef();
+
+                    const basicThermo& thermo =
+                        mesh().lookupObject<basicThermo>
+                        (
+                            IOobject::groupName(physicalProperties::typeName, phase.name())
+                        );
+
+
+                    forAll(bf, patchi)
+                    {
+                        fvPatchScalarField& hep = bf[patchi];
+
+                        if (!hep.fixesValue())
+                        {
+
+                            const scalarField pMod(p_.boundaryField()[patchi]);
+                            const scalarField Tmod(continuousPhase.thermo().T().boundaryField()[patchi]);
+
+                            const scalarField heMod(thermo.he(Tmod,patchi));
+                                          
+                            forAll(hep, facei)
+                            {
+                                if (phase.boundaryField()[patchi][facei]<phase.residualAlpha().value() )
+                                {
+                                    // Info << "patch " << patchi << " face " << facei << " alpha " <<
+                                    //         phase.boundaryField()[patchi][facei] << endl;
+                                            
+                                    hep[facei] = heMod[facei];
+                                }
+                            }
+                        }
+                    }
+                    */
+
+                    fluid_.correctThermo();
+
+                    /*
+                    Info<< "AFTER CORRECTION" << endl;
+                    Info<< phase.name() << " min/max T "
+                        << min(phase.thermo().T()).value()
+                        << " - "
+                        << max(phase.thermo().T()).value()
+                        << endl;
+                        
+
+                    // Initialize minimum value and corresponding cell index
+                    scalar minT = GREAT;
+                    scalar minAlpha = GREAT;
+                    label minCell = -1;
+
+                    // Loop over all cells
+                    forAll(phase.thermo().T(), cellI)
+                    {
+                        if (phase.thermo().T()[cellI] < minT)
+                        {
+                            minT = phase.thermo().T()[cellI];
+                            minAlpha = phase()[cellI];
+                            minCell = cellI;
+                        }
+                    }
+
+                    // Print result
+                    Info << "Minimum temperature: " << minT << " at cell " << minCell << endl;
+                    Info << "alfa at min Temp: " << minAlpha << endl;
+                    */
+
+                }
+            }
+
+            fluid_.correctThermo();
+
+
+            fluid_.predictThermophysicalTransport();
+            compositionPredictor();
+            energyPredictor();
+
+
+
+            forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+            {
+                const phaseModel& phase =
+                    fluid.anisothermalPhases()[anisothermalPhasei];
+
+                Info<< phase.name() << " min/max T "
+                    << min(phase.thermo().T()).value()
+                    << " - "
+                    << max(phase.thermo().T()).value()
+                    << endl;
+            }
+
+
+            
+            bool checkResidual(true);
+            bool doCheck(false);
+
+            forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+            {
+                const phaseModel& phase =
+                    fluid.anisothermalPhases()[anisothermalPhasei];
+
+                word name(phase.thermo().he().name());
+                const DynamicList<SolverPerformance<scalar>>& sp
+                (
+                    Residuals<scalar>::field(mesh, name)
+                );
+                label n = sp.size();
+                
+                scalar r0 = cmptMax(sp[n-1].initialResidual());
+                Info << name << " initial residual " << r0 << endl;
+                if (energyControlDict.found(name))
+                {
+                    doCheck = true;
+                    scalar residual(energyControlDict.lookup<scalar>(name));
+                    checkResidual = checkResidual && ( r0 <= residual);;          
+                } 
+            }
+            Info << "Iteration " 
+                 << Ecorr+1 
+                 << " Check for intial Energy Residual " 
+                 << checkResidual 
+                 << endl;
+            if (doCheck) 
+            {
+                if ( checkResidual )
+                {
+                    convergenceFlag = true;
+                    break;
+                }
+                else
+                {                   
+                    convergenceFlag = false;
+                }
+                Info << "convergenceFlag = " << convergenceFlag << endl;
+            }            
+        }
+    }
+}
+
+
+// ************************************************************************* //
