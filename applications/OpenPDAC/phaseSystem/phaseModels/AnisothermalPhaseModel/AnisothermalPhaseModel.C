@@ -202,13 +202,24 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
     }
     else if (this->thermo_->dpdt())
     {
-
+        // switch dpdt() should be false for solid (see solidThermo.H)
         const word continuousPhaseName = this->fluid().continuousPhaseName();
         const word phaseName = this->name();
+        volScalarField DpDt(this->fluid().dpdt() + 
+                            fvc::div(this->phi(), this->fluidThermo().p()));
+
+        if (U.mesh().moving())
+        {
+            DpDt -= fvc::div(this->phi() + U.mesh().phi())*this->fluidThermo().p();
+        }
+        else
+        {
+            DpDt -= fvc::div(this->phi())*this->fluidThermo().p();            
+        }        
 
         if (phaseName == continuousPhaseName)
         {
-            tEEqn.ref() -= filterPressureWork(alpha*this->fluid().dpdt());
+            tEEqn.ref() -= filterPressureWork(alpha*DpDt);
         }
 
     }
