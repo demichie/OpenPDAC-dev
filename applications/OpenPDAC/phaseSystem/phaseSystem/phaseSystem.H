@@ -552,6 +552,13 @@ public:
                 PtrList<surfaceScalarField>& dragCorrf
             ) const = 0;
 
+            //- Set the cell and faces drag correction fields
+            virtual void dragEnergy
+            (
+                PtrList<volScalarField>& dragEnergyTransfer
+            ) const = 0;
+
+
             //- Re-normalise the flux of the phases
             //  around the specified mixture mean
             void setMixturePhi

@@ -626,7 +626,9 @@ void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::invADVs
 
     // Clear the Kds_ if they are not needed for the optional dragCorrection
     const pimpleNoLoopControl& pimple = this->pimple();
-    if (!pimple.dict().lookupOrDefault<Switch>("dragCorrection", false))
+    if (!pimple.dict().lookupOrDefault<Switch>("dragCorrection", false) &&
+        !pimple.dict().lookupOrDefault<Switch>("dragEnergyCorrection", false)
+       )
     {
         Kds_.clear();
     }
@@ -1206,6 +1208,53 @@ void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::dragCorrs
         }
     }
 }
+
+template<class BasePhaseSystem>
+void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::dragEnergy
+(
+    PtrList<volScalarField>& dragEnergyTransfer
+) const
+{
+    const word& continuousPhaseName = this->continuousPhaseName();
+    labelList movingPhases(this->phases().size(), -1);
+    PtrList<volVectorField> Uphis(this->movingPhases().size());
+
+    forAll(this->movingPhases(), movingPhasei)
+    {
+        movingPhases[this->movingPhases()[movingPhasei].index()] = movingPhasei;
+        Uphis.set(movingPhasei, fvc::reconstruct(this->movingPhases()[movingPhasei].phi()));
+    }
+
+    forAllConstIter(KdTable, Kds_, KdIter)
+    {
+        const volScalarField& K(*KdIter());
+        const phaseInterface interface(*this, KdIter.key());
+
+        forAllConstIter(phaseInterface, interface, iter)
+        {
+            const phaseModel& phase = iter();
+            const phaseModel& otherPhase = iter.otherPhase();
+
+            const label i = movingPhases[phase.index()];
+            const label j = movingPhases[otherPhase.index()];
+
+            if (i != -1)
+            {
+                const volScalarField K1
+                (
+                    (otherPhase/max(otherPhase, otherPhase.residualAlpha()))*K
+                );
+
+                volVectorField dragForce = K1 * (j == -1 ? -Uphis[i] : (Uphis[j] - Uphis[i]));
+                const volVectorField& Udispersed(phase.name() != continuousPhaseName ? Uphis[i] : Uphis[j]);
+                volScalarField dragEnergy = (dragForce & Udispersed);
+
+                addField(i, IOobject::groupName("dragEnergyTransfer", phase.name()), dragEnergy, dragEnergyTransfer);
+            }
+        }
+    }
+}
+
 
 
 template<class BasePhaseSystem>

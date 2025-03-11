@@ -236,6 +236,12 @@ public:
             PtrList<surfaceScalarField>& dragCorrf
         ) const;
 
+        //- Set the cell drag energy correction fields
+        virtual void dragEnergy
+        (
+            PtrList<volScalarField>& dragEnergyTransfer
+        ) const;
+
         //- Read base phaseProperties dictionary
         virtual bool read();
 };
