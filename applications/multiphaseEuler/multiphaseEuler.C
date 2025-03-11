@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2022-2024 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2022-2025 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -60,6 +60,8 @@ bool Foam::solvers::multiphaseEuler::read()
 
     nEnergyCorrectors =
         pimple.dict().lookupOrDefault<int>("nEnergyCorrectors", 1);
+
+    alphaControls.read(mesh.solution().solverDict("alpha"));
 
     return true;
 }
@@ -173,12 +175,12 @@ Foam::solvers::multiphaseEuler::multiphaseEuler(fvMesh& mesh)
 
     p_(movingPhases_[0].fluidThermo().p()),
 
-    p_rgh(buoyancy.p_rgh),
+    p_rgh_(buoyancy.p_rgh),
 
     pressureReference
     (
         p_,
-        p_rgh,
+        p_rgh_,
         pimple.dict(),
         fluid_.incompressible()
     ),
@@ -189,6 +191,7 @@ Foam::solvers::multiphaseEuler::multiphaseEuler(fvMesh& mesh)
     phases(phases_),
     movingPhases(movingPhases_),
     p(p_),
+    p_rgh(p_rgh_),
     phi(phi_)
 {
     // Read the controls
@@ -246,25 +249,36 @@ void Foam::solvers::multiphaseEuler::prePredictor()
 {
     if (pimple.thermophysics() || pimple.flow())
     {
-        fluid_.solve(rAs);
+        alphaControls.correct(CoNum);
+        fluid_.solve(alphaControls, rAs);
         fluid_.correct();
         fluid_.correctContinuityError();
-    }
-
-    if (pimple.flow() && pimple.predictTransport())
-    {
-        fluid_.predictMomentumTransport();
     }
 }
 
 
-void Foam::solvers::multiphaseEuler::postCorrector()
+void Foam::solvers::multiphaseEuler::momentumTransportPredictor()
 {
-    if (pimple.flow() && pimple.correctTransport())
-    {
-        fluid_.correctMomentumTransport();
-        fluid_.correctThermophysicalTransport();
-    }
+    fluid_.predictMomentumTransport();
+}
+
+
+void Foam::solvers::multiphaseEuler::thermophysicalTransportPredictor()
+{
+    // Moved inside the nEnergyCorrectors loop in thermophysicalPredictor()
+    // fluid_.predictThermophysicalTransport();
+}
+
+
+void Foam::solvers::multiphaseEuler::momentumTransportCorrector()
+{
+    fluid_.correctMomentumTransport();
+}
+
+
+void Foam::solvers::multiphaseEuler::thermophysicalTransportCorrector()
+{
+    fluid_.correctThermophysicalTransport();
 }
 
 

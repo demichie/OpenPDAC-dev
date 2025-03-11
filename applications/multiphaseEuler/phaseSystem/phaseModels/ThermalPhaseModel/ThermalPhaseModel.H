@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2021-2025 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2015-2025 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,23 +22,22 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::dispersedDisplacedPhaseInterface
+    Foam::ThermalPhaseModel
 
 Description
-    Class to represent a interface between phases where one phase is considered
-    dispersed within the other, and the interface has been displaced to some
-    extent by a third phase.
+    Class which represents a phase for which the temperature (strictly energy)
+    varies. Returns the energy equation and corrects the thermodynamic model.
 
 SourceFiles
-    dispersedDisplacedPhaseInterface.C
+    ThermalPhaseModel.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef dispersedDisplacedPhaseInterface_H
-#define dispersedDisplacedPhaseInterface_H
+#ifndef ThermalPhaseModel_H
+#define ThermalPhaseModel_H
 
-#include "dispersedPhaseInterface.H"
-#include "displacedPhaseInterface.H"
+#include "ThermophysicalTransportPhaseModel.H"
+#include "uniformDimensionedFields.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -46,60 +45,68 @@ namespace Foam
 {
 
 /*---------------------------------------------------------------------------*\
-                    Class dispersedDisplacedPhaseInterface Declaration
+                   Class ThermalPhaseModel Declaration
 \*---------------------------------------------------------------------------*/
 
-class dispersedDisplacedPhaseInterface
+template<class BasePhaseModel>
+class ThermalPhaseModel
 :
-    public dispersedPhaseInterface,
-    public displacedPhaseInterface
+    public ThermophysicalTransportPhaseModel<BasePhaseModel>
 {
-protected:
+    // Private Member Data
 
-    // Protected Member Functions
+        //- Gravitational acceleration
+        const uniformDimensionedVectorField& g_;
 
-        //- Return true if the phase interfaces are the same
-        virtual bool same(const phaseInterface& interface, bool strict) const;
+
+    // Private Member Functions
+
+        //- Optionally filter the pressure work term as the phase-fraction -> 0
+        tmp<volScalarField> filterPressureWork
+        (
+            const tmp<volScalarField>& pressureWork
+        ) const;
 
 
 public:
 
-    //- Runtime type information
-    TypeName("dispersedDisplacedPhaseInterface");
-
-
     // Constructors
 
-        //- Construct from phases
-        dispersedDisplacedPhaseInterface
-        (
-            const phaseModel& dispersed,
-            const phaseModel& continuous,
-            const phaseModel& displacing
-        );
-
-        //- Construct from fluid and name
-        dispersedDisplacedPhaseInterface
+        ThermalPhaseModel
         (
             const phaseSystem& fluid,
-            const word& name
+            const word& phaseName,
+            const bool referencePhase,
+            const label index
         );
 
 
     //- Destructor
-    virtual ~dispersedDisplacedPhaseInterface();
+    virtual ~ThermalPhaseModel();
 
 
     // Member Functions
 
-        //- Name
-        virtual word name() const;
+        //- Correct the thermodynamics
+        virtual void correctThermo();
+
+        //- Return whether the phase is isothermal
+        virtual bool isothermal() const;
+
+        //- Return the enthalpy equation
+        virtual tmp<fvScalarMatrix> heEqn();
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 } // End namespace Foam
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#ifdef NoRepository
+    #include "ThermalPhaseModel.C"
+#endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 

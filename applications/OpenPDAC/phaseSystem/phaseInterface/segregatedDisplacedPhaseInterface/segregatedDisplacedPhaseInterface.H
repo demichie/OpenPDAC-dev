@@ -54,6 +54,14 @@ class segregatedDisplacedPhaseInterface
     public segregatedPhaseInterface,
     public displacedPhaseInterface
 {
+protected:
+
+    // Protected Member Functions
+
+        //- Return true if the phase interfaces are the same
+        virtual bool same(const phaseInterface& interface, bool strict) const;
+
+
 public:
 
     //- Runtime type information

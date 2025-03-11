@@ -40,6 +40,8 @@ Foam::solvers::OpenPDAC::compressibilityEqns
     const PtrList<volScalarField>& d2mdtdps
 ) const
 {
+    volScalarField& p_rgh = p_rgh_;
+
     PtrList<fvScalarMatrix> pEqnComps(phases.size());
 
     forAll(phases_, phasei)

@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2015-2023 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2015-2025 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -23,7 +23,7 @@ License
 
 \*---------------------------------------------------------------------------*/
 
-#include "AnisothermalPhaseModel.H"
+#include "ThermalPhaseModel.H"
 #include "phaseSystem.H"
 #include "fvcMeshPhi.H"
 #include "fvcDdt.H"
@@ -34,7 +34,7 @@ License
 
 template<class BasePhaseModel>
 Foam::tmp<Foam::volScalarField>
-Foam::AnisothermalPhaseModel<BasePhaseModel>::filterPressureWork
+Foam::ThermalPhaseModel<BasePhaseModel>::filterPressureWork
 (
     const tmp<volScalarField>& pressureWork
 ) const
@@ -63,7 +63,7 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::filterPressureWork
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 template<class BasePhaseModel>
-Foam::AnisothermalPhaseModel<BasePhaseModel>::AnisothermalPhaseModel
+Foam::ThermalPhaseModel<BasePhaseModel>::ThermalPhaseModel
 (
     const phaseSystem& fluid,
     const word& phaseName,
@@ -71,30 +71,29 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::AnisothermalPhaseModel
     const label index
 )
 :
-    BasePhaseModel(fluid, phaseName, referencePhase, index),
-    g_(fluid.mesh().lookupObject<uniformDimensionedVectorField>("g")),
-    thermophysicalTransport_
+    ThermophysicalTransportPhaseModel<BasePhaseModel>
     (
-        PhaseThermophysicalTransportModel
-        <
-            phaseCompressible::momentumTransportModel,
-            transportThermoModel
-        >::New(this->momentumTransport_, this->thermo_)
-    )
+        fluid,
+        phaseName,
+        referencePhase,
+        index
+    ),
+    g_(fluid.mesh().lookupObject<uniformDimensionedVectorField>("g")),
+    totalEnergy(fluid.mesh().solution().dict().subDict("PIMPLE").subDict("energyControl").lookupOrDefault<Switch>("totalEnergy", false))
 {}
 
 
 // * * * * * * * * * * * * * * * * Destructor  * * * * * * * * * * * * * * * //
 
 template<class BasePhaseModel>
-Foam::AnisothermalPhaseModel<BasePhaseModel>::~AnisothermalPhaseModel()
+Foam::ThermalPhaseModel<BasePhaseModel>::~ThermalPhaseModel()
 {}
 
 
 // * * * * * * * * * * * * * * * Member Functions  * * * * * * * * * * * * * //
 
 template<class BasePhaseModel>
-void Foam::AnisothermalPhaseModel<BasePhaseModel>::correctThermo()
+void Foam::ThermalPhaseModel<BasePhaseModel>::correctThermo()
 {
     BasePhaseModel::correctThermo();
 
@@ -103,57 +102,15 @@ void Foam::AnisothermalPhaseModel<BasePhaseModel>::correctThermo()
 
 
 template<class BasePhaseModel>
-bool Foam::AnisothermalPhaseModel<BasePhaseModel>::isothermal() const
+bool Foam::ThermalPhaseModel<BasePhaseModel>::isothermal() const
 {
     return false;
 }
 
 
 template<class BasePhaseModel>
-void Foam::AnisothermalPhaseModel<BasePhaseModel>::
-predictThermophysicalTransport()
-{
-    BasePhaseModel::predictThermophysicalTransport();
-    thermophysicalTransport_->predict();
-}
-
-
-template<class BasePhaseModel>
-void Foam::AnisothermalPhaseModel<BasePhaseModel>::
-correctThermophysicalTransport()
-{
-    BasePhaseModel::correctThermophysicalTransport();
-    thermophysicalTransport_->correct();
-}
-
-
-template<class BasePhaseModel>
-Foam::tmp<Foam::scalarField>
-Foam::AnisothermalPhaseModel<BasePhaseModel>::kappaEff(const label patchi) const
-{
-    return thermophysicalTransport_->kappaEff(patchi);
-}
-
-
-template<class BasePhaseModel>
 Foam::tmp<Foam::fvScalarMatrix>
-Foam::AnisothermalPhaseModel<BasePhaseModel>::divq(volScalarField& he) const
-{
-    return thermophysicalTransport_->divq(he);
-}
-
-
-template<class BasePhaseModel>
-Foam::tmp<Foam::fvScalarMatrix>
-Foam::AnisothermalPhaseModel<BasePhaseModel>::divj(volScalarField& Yi) const
-{
-    return thermophysicalTransport_->divj(Yi);
-}
-
-
-template<class BasePhaseModel>
-Foam::tmp<Foam::fvScalarMatrix>
-Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
+Foam::ThermalPhaseModel<BasePhaseModel>::heEqn()
 {
     const volScalarField& alpha = *this;
     const volScalarField& rho = this->rho();
@@ -163,6 +120,14 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
 
     const tmp<surfaceScalarField> talphaRhoPhi(this->alphaRhoPhi());
     const surfaceScalarField& alphaRhoPhi(talphaRhoPhi());
+
+    const tmp<surfaceScalarField> talphaPhi(this->alphaPhi());
+    const surfaceScalarField& alphaPhi(talphaPhi());
+
+
+    const tmp<surfaceScalarField> tPhi(this->phi());
+    const surfaceScalarField& phi(tPhi());
+
 
     const tmp<volScalarField> tcontErr(this->continuityError());
     const volScalarField& contErr(tcontErr());
@@ -177,32 +142,69 @@ Foam::AnisothermalPhaseModel<BasePhaseModel>::heEqn()
         fvm::ddt(alpha, rho, he)
       + fvm::div(alphaRhoPhi, he)
       - fvm::Sp(contErr, he)
-
-      + fvc::ddt(alpha, rho, K) + fvc::div(alphaRhoPhi, K)
-      - contErr*K
-
       + this->divq(he)
      ==
-        alpha*rho*(U&g_)
-      + alpha*this->Qdot()
+        alpha*this->Qdot()
     );
 
-    // Add the appropriate pressure-work term
-    if (he.name() == this->thermo_->phasePropertyName("e"))
+    Info << "totalEnergy: " << totalEnergy << endl;        
+    
+    if (totalEnergy)
     {
-        tEEqn.ref() += filterPressureWork
-        (
+        tEEqn.ref() += ( fvc::ddt(alpha, rho, K) + fvc::div(alphaRhoPhi, K)
+                 - contErr*K - alpha*rho*(U&g_));
+
+        // Add the appropriate pressure-work term
+        if (he.name() == this->thermo_->phasePropertyName("e"))
+        {
+            tEEqn.ref() += filterPressureWork
+            (
+                fvc::div
+                (
+                    fvc::absolute(alphaRhoPhi, alpha, rho, U),
+                    this->fluidThermo().p()/rho
+                )
+              + (fvc::ddt(alpha) - contErr/rho)*this->fluidThermo().p()
+            );
+        }
+        else if (this->thermo_->dpdt())
+        {
+            tEEqn.ref() -= filterPressureWork(alpha*this->fluid().dpdt());
+        }        
+    }
+    else
+    {
+        // Add the appropriate pressure-work term
+        if (he.name() == this->thermo_->phasePropertyName("e"))
+        {
+            tEEqn.ref() -= filterPressureWork
+            (        
+                this->fluidThermo().p() * 
+                ( fvc::ddt(alpha)
+                + fvc::div
+                    (
+                        fvc::absolute(phi,U),
+                        alpha
+                    )
+                )
+            );
+        }
+        else if (this->thermo_->dpdt())
+        {
+            volScalarField DpDt(alpha*this->fluid().dpdt() + 
             fvc::div
             (
-                fvc::absolute(alphaRhoPhi, alpha, rho, U),
-                this->fluidThermo().p()/rho
-            )
-          + (fvc::ddt(alpha) - contErr/rho)*this->fluidThermo().p()
-        );
-    }
-    else if (this->thermo_->dpdt())
-    {
-        tEEqn.ref() -= filterPressureWork(alpha*this->fluid().dpdt());
+                fvc::absolute(alphaPhi, alpha, U),
+                this->fluidThermo().p()
+            ) 
+            - fvc::div
+            (
+                fvc::absolute(phi,U),
+                alpha
+            )*this->fluidThermo().p()
+            );            
+            tEEqn.ref() -= filterPressureWork(DpDt);
+        }        
     }
 
     return tEEqn;

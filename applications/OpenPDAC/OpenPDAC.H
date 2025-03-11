@@ -95,6 +95,8 @@ protected:
         //  Defaults to 1
         int nEnergyCorrectors;
 
+        phaseSystem::alphaControl alphaControls;
+
         //- set dispersed phase temperature as continuum when alpha<residual
         //  Defaults to false
         Switch correctTdispersed;
@@ -138,7 +140,7 @@ protected:
 
         //- Reference to the buoyant pressure for buoyant cases
         //  otherwise to the pressure
-        volScalarField& p_rgh;
+        volScalarField& p_rgh_;
 
         // mixture density
         volScalarField rho;
@@ -246,6 +248,10 @@ public:
         //- Reference to the pressure field
         const volScalarField& p;
 
+        //- Reference to the buoyant pressure for buoyant cases
+        //  otherwise to the pressure
+        const volScalarField& p_rgh;
+
         //- Reference to the mass-flux field
         const surfaceScalarField& phi;
 
@@ -281,6 +287,12 @@ public:
         //- Called at the start of the PIMPLE loop
         virtual void prePredictor();
 
+        //- Predict the momentum transport
+        virtual void momentumTransportPredictor();
+
+        //- Predict thermophysical transport
+        virtual void thermophysicalTransportPredictor();
+
         //- Construct and optionally solve the momentum equation
         virtual void momentumPredictor();
 
@@ -292,8 +304,11 @@ public:
         //- Construct and solve the pressure equation in the PISO loop
         virtual void pressureCorrector();
 
-        //- Correct the momentum and thermophysical transport modelling
-        virtual void postCorrector();
+        //- Correct the momentum transport
+        virtual void momentumTransportCorrector();
+
+        //- Correct the thermophysical transport
+        virtual void thermophysicalTransportCorrector();
 
         //- Called after the PIMPLE loop at the end of the time-step
         virtual void postSolve();
