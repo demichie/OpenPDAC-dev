@@ -1,7 +1,7 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  4.0                                   |
+|  \\    /   O peration     | Version:  10.0                                  |
 |   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
@@ -11,39 +11,50 @@ FoamFile
     format      ascii;
     class       volScalarField;
     location    "0";
-    object      alpha.air;
+    object      ph_rgh;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 0 0 0 0 0 0];
+dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 0.9999999998;
+internalField   uniform 0;
 
 boundaryField
 {
     wall
     {
-        type            zeroGradient;
+        type            fixedFluxPressure;
+        value           $internalField;
+        //type            zeroGradient;
     }
     inlet
     {
-        type            fixedValue;
-        value           uniform 0.99;
+        type            fixedFluxPressure;
+        value           $internalField;
+        //type            zeroGradient;
+    }
+    side
+    {
+        type            fixedFluxPressure;
+        value           $internalField;
+        //type            zeroGradient;
     }
     axis
     {
-        type            zeroGradient;
-    }    
-    outOrIn
+        type            fixedFluxPressure;
+        value           $internalField;
+        //type            zeroGradient;
+    }
+    top 
     {
-        type            inletOutlet;
-        inletValue      uniform 1;
-        value           uniform 1;
+        type            fixedValue;
+        value           $internalField;
     }
     frontAndBack
     {
         type            empty;
     }
+
 }
 
 

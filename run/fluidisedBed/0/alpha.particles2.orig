@@ -7,14 +7,13 @@
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
-    format      binary;
+    format      ascii;
     class       volScalarField;
-    location    "0";
-    object      Theta.particles2;
+    object      alpha.particles2;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];
+dimensions      [0 0 0 0 0 0 0];
 
 internalField   uniform 0;
 
@@ -22,43 +21,25 @@ boundaryField
 {
     inlet
     {
-        type            fixedValue;
-        value           uniform 1.e-4;
+        type            zeroGradient;
     }
-    top
+
+    outlet
     {
         type            inletOutlet;
-        phi             phi.particles1;
-        inletValue      uniform 1e-4;
-        value           uniform 1e-4;
+        inletValue      uniform 0.0000000001;
+        value           uniform 0.0000000001;
     }
-    side
-    {
-        type            inletOutlet;
-        phi             phi.particles2;
-        inletValue      uniform 1e-4;
-        value           uniform 1e-4;
-    }
-    groundAndWall
-    {
-        type            JohnsonJacksonParticleTheta;
-        restitutionCoefficient 0.8;
-        specularityCoefficient 0.01;
-        value           uniform 1e-4;
-    }
-    axis
+
+    walls
     {
         type            zeroGradient;
     }
-    front
-    {
-        type            empty;
-    }
-    back
+
+    frontAndBackPlanes
     {
         type            empty;
     }
 }
-
 
 // ************************************************************************* //

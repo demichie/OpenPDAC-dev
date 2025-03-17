@@ -1,0 +1,35 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  dev
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format          ascii;
+    class           dictionary;
+    location        "system";
+    object          functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+writeObjects1
+{
+    type        writeObjects;
+    libs        ("libutilityFunctionObjects.so");
+    objects
+    (
+        alpha.particles1
+        T.particles1
+        alpha.particles2
+        T.particles2
+        alpha.air
+        T.air
+    );
+
+    writeControl    adjustableRunTime;
+    writeInterval   0.05;
+}
+
+// ************************************************************************* //
