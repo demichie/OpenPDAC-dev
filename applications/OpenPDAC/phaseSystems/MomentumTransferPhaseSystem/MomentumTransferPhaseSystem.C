@@ -631,6 +631,7 @@ void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::invADVs
        )
     {
         Kds_.clear();
+        Info << "Kds clear" << endl; 
     }
 
     for (label i=0; i<n; i++)
@@ -1212,7 +1213,7 @@ void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::dragCorrs
 template<class BasePhaseSystem>
 void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::dragEnergy
 (
-    PtrList<volScalarField>& dragEnergyTransfer
+    PtrList<volScalarField>& dragEnergyTransfers
 ) const
 {
     const word& continuousPhaseName = this->continuousPhaseName();
@@ -1223,6 +1224,45 @@ void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::dragEnergy
     {
         movingPhases[this->movingPhases()[movingPhasei].index()] = movingPhasei;
         Uphis.set(movingPhasei, fvc::reconstruct(this->movingPhases()[movingPhasei].phi()));
+    }
+
+    Kds_.clear();
+
+    // Update the drag coefficients
+    forAllConstIter
+    (
+        dragModelTable,
+        dragModels_,
+        dragModelIter
+    )
+    {
+        const phaseInterface& interface = dragModelIter()->interface();
+
+        tmp<volScalarField> tKd(dragModelIter()->K());
+        volScalarField& Kd = tKd.ref();
+        Kds_.insert(dragModelIter.key(), tKd.ptr());
+
+        // Zero-gradient the drag coefficient to boundaries with fixed velocity
+        forAll(Kd.boundaryField(), patchi)
+        {
+            if
+            (
+                (
+                    !interface.phase1().stationary()
+                 && interface.phase1().U()()
+                   .boundaryField()[patchi].fixesValue()
+                )
+             && (
+                    !interface.phase2().stationary()
+                 && interface.phase2().U()()
+                   .boundaryField()[patchi].fixesValue()
+                )
+            )
+            {
+                Kd.boundaryFieldRef()[patchi] =
+                    Kd.boundaryField()[patchi].patchInternalField();
+            }
+        }
     }
 
     forAllConstIter(KdTable, Kds_, KdIter)
@@ -1244,12 +1284,15 @@ void Foam::MomentumTransferPhaseSystem<BasePhaseSystem>::dragEnergy
                 (
                     (otherPhase/max(otherPhase, otherPhase.residualAlpha()))*K
                 );
-
                 volVectorField dragForce = K1 * (j == -1 ? -Uphis[i] : (Uphis[j] - Uphis[i]));
-                const volVectorField& Udispersed(phase.name() != continuousPhaseName ? Uphis[i] : Uphis[j]);
-                volScalarField dragEnergy = (dragForce & Udispersed);
+                
+                const volVectorField& Umult = 
+                    (phase.name() != continuousPhaseName) ? Uphis[i] :
+                    (otherPhase.name() != continuousPhaseName) ? Uphis[j] :
+                    volVectorField("Umult", 0.5 * (Uphis[i] + Uphis[j]));
 
-                addField(i, IOobject::groupName("dragEnergyTransfer", phase.name()), dragEnergy, dragEnergyTransfer);
+                volScalarField dragEnergy = (dragForce & Umult);
+                addField(i, IOobject::groupName("dragEnergyTransfer", phase.name()), dragEnergy, dragEnergyTransfers);
             }
         }
     }

@@ -106,9 +106,9 @@ void Foam::solvers::OpenPDAC::energyPredictor()
             pimple.dict().lookupOrDefault<Switch>("dragEnergyCorrection", false)
            )
         {
-            PtrList<volScalarField> dragEnergyTransfer;
-            fluid.dragEnergy(dragEnergyTransfer);
-            EEqn += dragEnergyTransfer[anisothermalPhasei];
+            PtrList<volScalarField> dragEnergyTransfers(movingPhases.size());
+            fluid.dragEnergy(dragEnergyTransfers);
+            EEqn -= dragEnergyTransfers[anisothermalPhasei];
         }   
 
         EEqn.relax();
