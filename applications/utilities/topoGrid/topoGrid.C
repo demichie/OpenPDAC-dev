@@ -743,7 +743,10 @@ Info << "zMax = " << zMax << endl;
 // scalar Ldef(0.5*std::sqrt( sqr(xMax-xMin) + sqr(yMax-yMin) + sqr(zMax-zMin) ));
 scalar Ldef(0.5*std::sqrt( sqr(xMax-xMin) + sqr(yMax-yMin) ));
 
-Info << "Ldef = " << Ldef << endl << endl;
+Info << "Ldef = " << Ldef << endl;
+ 
+scalar noDeformLevel(0.5*Ldef);
+Info << "noDeformLevel = " << noDeformLevel << endl << endl;
     
 scalar z2Rel(0.0);
 scalar zNew(0.0);
@@ -1173,7 +1176,7 @@ for (label i = 0; i < topCentresX.size(); ++i)
     concatenatedPointsX[Pstream::myProcNo()][i + bottomPointsX.size()] = topCentresX[i];
     concatenatedPointsY[Pstream::myProcNo()][i + bottomPointsY.size()] = topCentresY[i];
     // concatenatedPointsZ[Pstream::myProcNo()][i + bottomPointsZ.size()] = topCentresZ[i];
-    concatenatedPointsZ[Pstream::myProcNo()][i + bottomPointsZ.size()] = 0.5*Ldef;
+    concatenatedPointsZ[Pstream::myProcNo()][i + bottomPointsZ.size()] = noDeformLevel;
     concatenatedAreas[Pstream::myProcNo()][i + bottomPointsArea.size()] = topCentresAreas[i];
     concatenatedDx[Pstream::myProcNo()][i + bottomPointsDx.size()] = topCentresDx[i];
     concatenatedDy[Pstream::myProcNo()][i + bottomPointsDy.size()] = topCentresDy[i];
@@ -1356,9 +1359,10 @@ forAll(pDeform,pointi)
                         globalPointsX, globalPointsY, globalPointsZ, 
                         globalDz, globalDx, globalDy, globalAreas); 
 
-            if ( pEval.z() > 0.5*Ldef)
+
+            if ( pEval.z() > noDeformLevel)
             {
-                coeffHor = ( zMax - pEval.z() ) / ( zMax - 0.5*Ldef );
+                coeffHor = ( zMax - pEval.z() ) / ( zMax - noDeformLevel );
             }
             else 
             {
@@ -1367,12 +1371,12 @@ forAll(pDeform,pointi)
             
             interpDx = DeltaInterp.x()*coeffHor;                       
             interpDy = DeltaInterp.y()*coeffHor;                       
-            interpDz = DeltaInterp.z();  
+            interpDz = coeffHor * DeltaInterp.z() + (1.0 - coeffHor ) * maxTopo;  
         }                                      
     }
   
     // New elevation of the deformed point, used to compute the enlargement
-    zNew = mesh.points()[pointi].z() + interpDz;
+    zNew = pEval.z() + interpDz;
 
     // Compute coefficient for horizontal enlargement                
     if (dzVert > 0)
