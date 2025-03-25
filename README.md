@@ -17,6 +17,7 @@ Six test cases are provided:
 - a 2D fluidezed bed with two solid phases;
 - a 2D impinging flow with two solid phases.
 
-This version is based on 2024/07/01 of https://github.com/OpenFOAM/OpenFOAM-dev
+This version is based on the Ubuntu package:
+openfoam-dev   20250217     amd64  
 
 This code is not approved not endorsed by the OpenFOAM Foundation or by ESI Ltd, the owner of OpenFOAM.

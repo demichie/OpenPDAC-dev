@@ -1,2 +1,2 @@
-Based on the Ubuntu package:
-openfoam-dev   20250123     amd64    
+This version is based on the Ubuntu package:
+openfoam-dev   20250217     amd64  
