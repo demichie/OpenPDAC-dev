@@ -742,6 +742,10 @@ const Switch raiseTop = topoDict.lookupOrDefault<Switch>("raiseTop", true);
 const Switch orthogonalCorrection = topoDict.lookupOrDefault<Switch>("orthogonalCorrection", false);
 const scalar dist_rel1 = topoDict.lookupOrDefault<scalar>("dist_rel1", 0.1);
 const scalar dist_rel2 = topoDict.lookupOrDefault<scalar>("dist_rel2", 0.2);
+
+const scalar distC1 = topoDict.lookupOrDefault<scalar>("distC1", 0.0);
+const scalar distC2 = topoDict.lookupOrDefault<scalar>("distC2", 0.0);
+
     
 const scalar coeffVertDeformation = topoDict.lookupOrDefault<scalar>("coeffVertDeformation", 1.0);
  
@@ -1467,7 +1471,10 @@ scalar dyMin_rel;
 scalar dyMax_rel;
 
 scalar xCoeff;
-scalar yCoeff;     
+scalar yCoeff;  
+
+scalar distC;   
+scalar distCoeff;   
 
 scalar coeffHor;
 
@@ -1573,8 +1580,15 @@ forAll(pDeform,pointi)
         dyMin_rel = (pEval.y() - yMin)/(yMax-yMin);
         dyMax_rel = (yMax - pEval.y())/(yMax-yMin);
 
-        xCoeff = max(0.0,min(1.0,(min(dxMin_rel,dxMax_rel)-dist_rel1)/(dist_rel2-dist_rel1)));
-        yCoeff = max(0.0,min(1.0,(min(dyMin_rel,dyMax_rel)-dist_rel1)/(dist_rel2-dist_rel1)));
+        dx_rel = mag(pEval.x())/(xMax-xMin);
+        dy_rel = mag(pEval.y())/(yMax-yMin);
+
+        distC = Foam::sqrt(pow(pEval.x(),2) + pow(pEval.y(),2));
+
+        distCoeff = max(0.0,min(1.0,(distC-distC1)/(distC2-distC1)));
+
+        xCoeff = min(distCoeff,max(0.0,min(1.0,(min(dxMin_rel,dxMax_rel)-dist_rel1)/(dist_rel2-dist_rel1))));
+        yCoeff = min(distCoeff,max(0.0,min(1.0,(min(dyMin_rel,dyMax_rel)-dist_rel1)/(dist_rel2-dist_rel1))));
 
         pDeform[pointi].x() = xCoeff * interpDx * pEval.z();
         pDeform[pointi].y() = yCoeff * interpDy * pEval.z();     
