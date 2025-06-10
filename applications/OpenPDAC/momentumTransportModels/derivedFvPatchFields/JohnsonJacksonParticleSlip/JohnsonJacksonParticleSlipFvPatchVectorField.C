@@ -163,8 +163,9 @@ void Foam::JohnsonJacksonParticleSlipFvPatchVectorField::updateCoeffs()
     );
 
     this->valueFraction() = c/(c + patch().deltaCoeffs());
-
+    
     partialSlipFvPatchVectorField::updateCoeffs();
+
 }
 
 

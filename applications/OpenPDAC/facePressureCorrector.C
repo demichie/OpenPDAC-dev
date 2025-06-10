@@ -108,7 +108,7 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
             );
         }
 
-        invADVfs = fluid.invADVfs(Afs, HVmfs);
+        invADVfs = momentumTransferSystem_.invADVfs(Afs, HVmfs);
     }
 
     volScalarField rho("rho", fluid.rho());
@@ -118,7 +118,7 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
     PtrList<surfaceScalarField> FgByADfs;
     {
         // Explicit force fluxes
-        PtrList<surfaceScalarField> Ffs(fluid.Ffs());
+        PtrList<surfaceScalarField> Ffs(momentumTransferSystem_.Ffs());
 
         const surfaceScalarField ghSnGradRho
         (
@@ -155,8 +155,7 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
 
 
     // Mass transfer rates
-    PtrList<volScalarField> dmdts(fluid.dmdts());
-    PtrList<volScalarField> d2mdtdps(fluid.d2mdtdps());
+    PtrList<volScalarField::Internal> dmdts(populationBalanceSystem_.dmdts());
 
     bool checkInnerResidual(false);
     scalar r0(0.0);
@@ -259,6 +258,7 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
             rAf += alphafs[phase.index()]*alphaByADfs[movingPhasei];
         }
 
+        
         // Update the fixedFluxPressure BCs to ensure flux consistency
         {
             surfaceScalarField::Boundary phib
@@ -285,9 +285,10 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
                 )/(mesh.magSf().boundaryField()*rAf.boundaryField())
             );
         }
+        
 
         // Compressible pressure equations
-        PtrList<fvScalarMatrix> pEqnComps(compressibilityEqns(dmdts, d2mdtdps));
+        PtrList<fvScalarMatrix> pEqnComps(compressibilityEqns(dmdts));
 
         // Cache p prior to solve for density update
         volScalarField p_rgh_0(p_rgh);
@@ -296,6 +297,32 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
         // Iterate over the pressure equation to correct for non-orthogonality
         while (pimple.correctNonOrthogonal())
         {
+            // Update the fixedFluxPressure BCs to ensure flux consistency
+            {
+                surfaceScalarField::Boundary phib
+                (
+                    surfaceScalarField::Internal::null(),
+                    phi.boundaryField()
+                );
+                phib = 0;
+
+                forAll(movingPhases, movingPhasei)
+                {
+                    phaseModel& phase = movingPhases_[movingPhasei];
+
+                    phib +=
+                        alphafs[phase.index()].boundaryField()
+                       *phase.phi()().boundaryField();
+                }
+
+                setSnGrad<fixedFluxPressureFvPatchScalarField>
+                (
+                    p_rgh.boundaryFieldRef(),
+                    (
+                        phiHbyA.boundaryField() - phib
+                    )/(mesh.magSf().boundaryField()*rAf.boundaryField())
+                );
+            }
         
             // Construct the transport part of the pressure equation
             fvScalarMatrix pEqnIncomp
@@ -327,7 +354,7 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
                     fvConstraints().constrain(pEqn);
 
                     pEqn.solve();
-                
+
                     const DynamicList<SolverPerformance<scalar>>& sp
                     (
                         Residuals<scalar>::field(mesh, "p_rgh")
@@ -354,6 +381,7 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
             // Correct fluxes and velocities on last non-orthogonal iteration
             if (pimple.finalNonOrthogonalIter())
             {
+
                 phi_ = phiHbyA + pEqnIncomp.flux();
 
                 surfaceScalarField mSfGradp("mSfGradp", pEqnIncomp.flux()/rAf);
@@ -433,22 +461,36 @@ void Foam::solvers::OpenPDAC::facePressureCorrector()
                 }
             }
 
-            // Update mass transfer rates for change in p_rgh
-            forAll(phases, phasei)
-            {
-                if (dmdts.set(phasei) && d2mdtdps.set(phasei))
-                {
-                    dmdts[phasei] += d2mdtdps[phasei]*(p_rgh - p_rgh_0);
-                }
-            }
-
             // Correct p_rgh for consistency with p and the updated densities
             rho = fluid.rho();
             p_rgh = p - rho*buoyancy.gh;
             // p_rgh = p - rho*buoyancy.gh - buoyancy.pRef;
-        
+
+            surfaceScalarField::Boundary phib
+            (
+                surfaceScalarField::Internal::null(),
+                phi.boundaryField()
+            );
+            phib = 0;
+
+            forAll(movingPhases, movingPhasei)
+            {
+                phaseModel& phase = movingPhases_[movingPhasei];
+
+                phib +=
+                    alphafs[phase.index()].boundaryField()
+                   *phase.phi()().boundaryField();
+            }
+            
+            setSnGrad<fixedFluxPressureFvPatchScalarField>
+            (
+                p_rgh.boundaryFieldRef(),
+                (
+                    phiHbyA.boundaryField() - phib
+                )/(mesh.magSf().boundaryField()*rAf.boundaryField())
+            );            
+            p_rgh.correctBoundaryConditions();
         }
-        p_rgh.correctBoundaryConditions();
 
         if ( ( r0Inner <= innerResidual ) && ( !checkInnerResidual ) )
         {

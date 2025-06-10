@@ -48,6 +48,7 @@ namespace Foam
     );
 }
 
+
 // * * * * * * * * * * * * Protected Member Functions  * * * * * * * * * * * //
 
 bool Foam::segregatedDisplacedPhaseInterface::same

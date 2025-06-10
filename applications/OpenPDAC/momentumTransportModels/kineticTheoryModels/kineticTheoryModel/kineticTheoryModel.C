@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2023 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2025 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -699,12 +699,8 @@ void Foam::RASModels::kineticTheoryModel::correct()
         //     the laplacian has the wrong sign
         fvScalarMatrix ThetaEqn
         (
-            1.5*
-            (
-                fvm::ddt(alpha, rho, Theta_)
-              + fvm::div(alphaRhoPhi, Theta_)
-              - fvc::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), Theta_)
-            )
+            1.5*(fvm::ddt(alpha, rho, Theta_) + fvm::div(alphaRhoPhi, Theta_))
+          - 0.5*fvm::Sp(fvc::ddt(alpha, rho) + fvc::div(alphaRhoPhi), Theta_)
           - fvm::laplacian(kappa_, Theta_, "laplacian(kappa,Theta)")
          ==
           - fvm::SuSp((PsCoeff*I) && gradU, Theta_)

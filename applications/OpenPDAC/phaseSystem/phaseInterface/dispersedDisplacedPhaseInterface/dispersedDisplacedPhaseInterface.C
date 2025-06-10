@@ -65,6 +65,7 @@ bool Foam::dispersedDisplacedPhaseInterface::same
      && displacedPhaseInterface::same(interface, false);
 }
 
+
 // * * * * * * * * * * * * * * * * Constructors  * * * * * * * * * * * * * * //
 
 Foam::dispersedDisplacedPhaseInterface::dispersedDisplacedPhaseInterface

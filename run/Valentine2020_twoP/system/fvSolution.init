@@ -126,11 +126,29 @@ solvers
 
 PIMPLE
 {
-    nOuterCorrectors    2;
-    nCorrectors         1;
-    nNonOrthogonalCorrectors 2;
-    nEnergyCorrectors   1;
-    faceMomentum        on;
+    nOuterCorrectors    10;
+    outerCorrectorResidualControl
+    {
+        p_rgh
+        {
+            tolerance 1e-06;
+            relTol 0;
+        }
+    } 
+    
+    nCorrectors         3;
+    innerResidual       1e-7;
+
+    nNonOrthogonalCorrectors 3;
+    nonOrthogonalResidual 1e-8;
+
+    nEnergyCorrectors   10;
+    energyControl
+    {
+        "(h|e).*"    1e-6;
+    }  
+    
+    faceMomentum        yes;
     hydrostaticInitialisation true;
     nHydrostaticCorrectors 20;
 }

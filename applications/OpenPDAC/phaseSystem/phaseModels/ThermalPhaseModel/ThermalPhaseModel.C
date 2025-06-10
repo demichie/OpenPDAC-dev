@@ -124,10 +124,8 @@ Foam::ThermalPhaseModel<BasePhaseModel>::heEqn()
     const tmp<surfaceScalarField> talphaPhi(this->alphaPhi());
     const surfaceScalarField& alphaPhi(talphaPhi());
 
-
     const tmp<surfaceScalarField> tPhi(this->phi());
     const surfaceScalarField& phi(tPhi());
-
 
     const tmp<volScalarField> tcontErr(this->continuityError());
     const volScalarField& contErr(tcontErr());

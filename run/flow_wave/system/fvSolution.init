@@ -133,6 +133,10 @@ PIMPLE
     faceMomentum        yes;
     hydrostaticInitialisation true;
     nHydrostaticCorrectors 20;
+    energyControl
+    {
+        "(h|e).*"    1e-6;
+    }  
 }
 
 relaxationFactors

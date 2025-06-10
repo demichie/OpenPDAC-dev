@@ -15,13 +15,9 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-type basicMultiphaseSystem;
-
 phases (particles air);
 
 continuousPhase air;
-
-pMin 10000;
 
 particles
 {
@@ -58,67 +54,12 @@ blending
 }
 
 surfaceTension
-(
-    (particles and air)
+{
+    air_particles
     {
         type            constant;
         sigma           0;
     }
-);
-
-aspectRatio
-();
-
-drag
-(
- (particles in air)
- {
-   type timeScaleFiltered;
-   minRelaxTime 1e-5;
-   
-        dragModel 
-	  {
-            type            GidaspowErgunWenYu;
-            residualRe      1e-3;
-            swarmCorrection
-	      {
-                type        none;
-	      }
-	  }
- }
- );
-
-virtualMass
-(
-    (particles in air)
-    {
-        type            constantCoefficient;
-        Cvm             0.5;
-    }
-);
-
-heatTransfer
-(
-    (particles in air)
-    {
-        type            RanzMarshall;
-        residualAlpha   1e-3;
-    }
-);
-
-phaseTransfer
-();
-
-lift
-();
-
-wallLubrication
-();
-
-turbulentDispersion
-();
-
-interfaceCompression
-();
+};
 
 // ************************************************************************* //

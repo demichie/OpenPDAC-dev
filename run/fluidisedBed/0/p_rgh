@@ -23,7 +23,6 @@ boundaryField
     inlet
     {
         type            fixedFluxPressure;
-        gradient        uniform 0;
         value           uniform 101325;
     }
     outlet
@@ -36,7 +35,6 @@ boundaryField
     walls
     {
         type            fixedFluxPressure;
-        gradient        uniform 0;
         value           uniform 101325;
     }
     frontAndBackPlanes

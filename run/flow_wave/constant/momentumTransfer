@@ -1,0 +1,54 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  dev
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      momentumTransfer;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+drag
+{
+    particles_dispersedIn_air
+    {
+        type timeScaleFiltered;
+        minRelaxTime 1e-5;
+   
+        dragModel 
+	  {
+            type            GidaspowErgunWenYu;
+            residualRe      1e-3;
+            swarmCorrection
+	      {
+                type        none;
+	      }
+	  }
+     }
+ }
+
+virtualMass
+{
+    particles_dispersedIn_air
+    {
+        type            constantCoefficient;
+        Cvm             0.5;
+    }
+}
+
+lift
+{}
+
+wallLubrication
+{}
+
+turbulentDispersion
+{}
+
+// ************************************************************************* //

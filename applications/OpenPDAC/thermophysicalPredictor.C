@@ -35,11 +35,10 @@ License
 
 void Foam::solvers::OpenPDAC::compositionPredictor()
 {
-    autoPtr<phaseSystem::specieTransferTable>
-    specieTransferPtr(fluid.specieTransfer());
-
-    phaseSystem::specieTransferTable&
-    specieTransfer(specieTransferPtr());
+    autoPtr<HashPtrTable<fvScalarMatrix>> popBalSpecieTransferPtr =
+        populationBalanceSystem_.specieTransfer();
+    HashPtrTable<fvScalarMatrix>& popBalSpecieTransfer =
+        popBalSpecieTransferPtr();
 
     fluid_.correctReactions();
 
@@ -59,14 +58,18 @@ void Foam::solvers::OpenPDAC::compositionPredictor()
                 (
                     phase.YiEqn(Y[i])
                  ==
-                   *specieTransfer[Y[i].name()]
+                    *popBalSpecieTransfer[Y[i].name()]
                   + fvModels().source(alpha, rho, Y[i])
                 );
 
                 YiEqn.relax();
+                
                 fvConstraints().constrain(YiEqn);
+                
                 YiEqn.solve("Yi");
+                
                 Y[i] = max(0.0,min(Y[i],1.0));
+                
                 fvConstraints().constrain(Y[i]);
             }
             else
@@ -82,14 +85,19 @@ void Foam::solvers::OpenPDAC::compositionPredictor()
 
 void Foam::solvers::OpenPDAC::energyPredictor()
 {
-    autoPtr<phaseSystem::heatTransferTable>
-        heatTransferPtr(fluid.heatTransfer());
+    autoPtr<HashPtrTable<fvScalarMatrix>> heatTransferPtr =
+        heatTransferSystem_.heatTransfer();
+    HashPtrTable<fvScalarMatrix>& heatTransfer =
+        heatTransferPtr();
 
-    phaseSystem::heatTransferTable& heatTransfer = heatTransferPtr();
+    autoPtr<HashPtrTable<fvScalarMatrix>> popBalHeatTransferPtr =
+        populationBalanceSystem_.heatTransfer();
+    HashPtrTable<fvScalarMatrix>& popBalHeatTransfer =
+        popBalHeatTransferPtr();
 
-    forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+    forAll(fluid.thermalPhases(), thermalPhasei)
     {
-        phaseModel& phase = fluid_.anisothermalPhases()[anisothermalPhasei];
+        phaseModel& phase = fluid_.thermalPhases()[thermalPhasei];
 
         const volScalarField& alpha = phase;
         const volScalarField& rho = phase.rho();
@@ -98,8 +106,9 @@ void Foam::solvers::OpenPDAC::energyPredictor()
         (
             phase.heEqn()
          ==
-           *heatTransfer[phase.name()] +
-          fvModels().source(alpha, rho, phase.thermo().he())
+            *heatTransfer[phase.name()]
+          + *popBalHeatTransfer[phase.name()]
+          + fvModels().source(alpha, rho, phase.thermo().he())
         );
 
         if (pimple.dict().lookupOrDefault<Switch>("totalEnergy", false) &&
@@ -107,8 +116,8 @@ void Foam::solvers::OpenPDAC::energyPredictor()
            )
         {
             PtrList<volScalarField> dragEnergyTransfers(movingPhases.size());
-            fluid.dragEnergy(dragEnergyTransfers);
-            EEqn -= dragEnergyTransfers[anisothermalPhasei];
+            momentumTransferSystem_.dragEnergy(dragEnergyTransfers);
+            EEqn -= dragEnergyTransfers[thermalPhasei];
         }   
 
         EEqn.relax();
@@ -118,7 +127,7 @@ void Foam::solvers::OpenPDAC::energyPredictor()
     }
 
     fluid_.correctThermo();
-    fluid_.correctContinuityError();
+    fluid_.correctContinuityError(populationBalanceSystem_.dmdts());
 }
 
 
@@ -133,19 +142,22 @@ void Foam::solvers::OpenPDAC::thermophysicalPredictor()
         const phaseModel& continuousPhase = fluid.phases()[continuousPhaseName_];
 
 
-        forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+        forAll(fluid.thermalPhases(), thermalPhasei)
         {
-            const phaseModel& phase =
-                fluid.anisothermalPhases()[anisothermalPhasei];
+            const phaseModel& phase = fluid.thermalPhases()[thermalPhasei];
 
             if ( (&phase != &continuousPhase) && correctTdispersed )
             {
-                volScalarField he1 = phase.thermo().he(p_,phase.thermo().T());
-                volScalarField he2 = phase.thermo().he(p_,continuousPhase.thermo().T());
                 volScalarField& heNew = const_cast<volScalarField&>(phase.thermo().he());
+                volScalarField heTcont = phase.thermo().he(p_,continuousPhase.thermo().T());
                         
-                heNew = pos0(phase-phase.residualAlpha())*he1 
-                        + neg(phase-phase.residualAlpha())*he2;
+                heNew = pos(heNew)*heNew 
+                        + neg0(heNew)*heTcont;
+
+                // volScalarField he1 = phase.thermo().he(p_,phase.thermo().T());
+                        
+                heNew = pos0(phase-phase.residualAlpha())*heNew 
+                        + neg(phase-phase.residualAlpha())*heTcont;
 
                 fluid_.correctThermo();
             }
@@ -157,10 +169,9 @@ void Foam::solvers::OpenPDAC::thermophysicalPredictor()
         compositionPredictor();
         energyPredictor();
 
-        forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+        forAll(fluid.thermalPhases(), thermalPhasei)
         {
-            const phaseModel& phase =
-                fluid.anisothermalPhases()[anisothermalPhasei];
+            const phaseModel& phase = fluid.thermalPhases()[thermalPhasei];
 
             Info<< phase.name() << " min/max T "
                 << min(phase.thermo().T()).value()
@@ -172,10 +183,9 @@ void Foam::solvers::OpenPDAC::thermophysicalPredictor()
         bool checkResidual(true);
         bool doCheck(false);
 
-        forAll(fluid.anisothermalPhases(), anisothermalPhasei)
+        forAll(fluid.thermalPhases(), thermalPhasei)
         {
-            const phaseModel& phase =
-                fluid.anisothermalPhases()[anisothermalPhasei];
+            const phaseModel& phase = fluid.thermalPhases()[thermalPhasei];
 
             word name(phase.thermo().he().name());
             const DynamicList<SolverPerformance<scalar>>& sp

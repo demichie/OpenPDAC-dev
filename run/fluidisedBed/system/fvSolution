@@ -93,7 +93,7 @@ PIMPLE
     momentumPredictor   no; 
     correctTdispersed   no;
     
-    innerResidual 1e-5;
+    innerResidual 1e-6;
     outerCorrectorResidualControl
     {
         p_rgh

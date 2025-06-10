@@ -1,0 +1,53 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  dev
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      momentumTransfer;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+drag
+{
+    particles1_dispersedIn_air
+    {
+        type            GidaspowErgunWenYu;
+        residualRe      1e-3;
+    }
+    particles2_dispersedIn_air
+    {
+        type            GidaspowErgunWenYu;
+        residualRe      1e-3;
+    }
+    particles1_particles2    
+    {
+        type            solidSolidDrag;
+        gas             air;
+        solid1          particles1;
+        solid2          particles2;
+        E               0.5;
+        Cf              1.0;
+    }
+}
+
+virtualMass
+{}
+
+
+lift
+{}
+
+wallLubrication
+{}
+
+turbulentDispersion
+{}
+
+// ************************************************************************* //
