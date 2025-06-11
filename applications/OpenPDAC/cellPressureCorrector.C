@@ -353,6 +353,34 @@ void Foam::solvers::OpenPDAC::cellPressureCorrector()
         // Iterate over the pressure equation to correct for non-orthogonality
         while (pimple.correctNonOrthogonal())
         {
+
+            // Update the fixedFluxPressure BCs to ensure flux consistency
+            {
+                surfaceScalarField::Boundary phib
+                (
+                    surfaceScalarField::Internal::null(),
+                    phi.boundaryField()
+                );
+                phib = 0;
+
+                forAll(movingPhases, movingPhasei)
+                {
+                    phaseModel& phase = movingPhases_[movingPhasei];
+
+                    phib +=
+                        alphafs[phase.index()].boundaryField()
+                       *phase.phi()().boundaryField();
+                }
+
+                setSnGrad<fixedFluxPressureFvPatchScalarField>
+                (
+                    p_rgh.boundaryFieldRef(),
+                    (
+                        phiHbyA.boundaryField() - phib
+                    )/(mesh.magSf().boundaryField()*rAf.boundaryField())
+                );
+            }
+
             // Construct the transport part of the pressure equation
             fvScalarMatrix pEqnIncomp
             (

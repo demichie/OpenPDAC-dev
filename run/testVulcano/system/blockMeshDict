@@ -1,0 +1,1307 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  any
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile {
+    format ascii;
+    class dictionary;
+    object blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+convertToMeters 1.0;
+
+// Parameters to insert
+
+// Crater paramters
+r_crater_top 10.0; // Radius of crater top in meters
+r_crater_base 10.0; // Radius of conduit in meters
+h_crater 100.0; // Length of crater in meters
+dx_crater_base 0.0;
+dy_crater_base 0.0;
+
+// Conduit parameters
+h_conduit 0.0; //Lenght of conduit in meters (0-> no conduit)
+r_conduit_base 10.0; // Radius of the conduit base in meters
+dx_conduit_base 0.0;
+dy_conduit_base 0.0;
+
+// Atmospheric domain parameters
+atm_top_z 2500.0; //Vertical extension of the atmospheric domain in meters
+atm_x_pos 1500.0; //Horizontal extension of the right part of atmospheric domain in meters
+atm_y_pos 1500.0; //Horizontal extension of the front part of atmospheric domain in meters
+atm_y_neg -1500.0; //Horizontal extension of the back part of atmospheric domain in meters
+atm_x_neg -1500.0; //Horizontal extension of the left part of atmospheric domain in meters
+
+n_vert_layers 3; // number of layers in the atmosphere
+
+hor_cell_size_top_atm 40.0; // horizontal cell size at the top of the atmopshere block
+
+dz_to_dxy_crater_ratio 2.0; // aspect-ratio of cells at the top of the crater/base of atmosphere
+dz_to_dxy_atm_ratio 2.0; // aspect-ratio of cells at the top of the bottom layer
+
+// cyl_radial_expansion 0.05;
+
+// Fixed parameters
+crater_top_z 0.0; //position of the crater top
+degAngle 45.0;
+degAngleHalf 22.5;
+coeff 1.1; // Parameter for the shape of the octagon
+
+#codeStream {
+
+    codeInclude
+    #{
+        #include "scalarList.H"
+    #};
+
+    code #{
+    
+        const Foam::scalarList layer_fraction = {0.0, 0.025, 0.1, 1.0};
+
+        const Foam::scalarList atmCells_aspect_ratio_bottom = {1.0, 1.0};
+        const Foam::scalarList atmCells_aspect_ratio_top = {2.0, 1.0};
+
+        const Foam::labelList innerMesh_refinementLevel = {0, 0, 0};
+        const Foam::scalarList cyl_radial_expansion = {0.05, 0.05, 0.04, 0.02};
+
+
+
+
+        // --- Helper Function for Geometric Grading Calculation (using auto/lambda) ---
+        auto calculateGradingCells = [&]( // Usa [&] per catturare per riferimento, o [] se non serve accesso a variabili esterne
+            scalar totalLength,
+            scalar cellSizeStart,
+            scalar cellSizeEnd,
+            label& nCells,
+            scalar& grading,
+            label maxIter = 50,     // Puoi ancora usare valori di default
+            scalar tolerance = 1e-4
+        ) -> void // Specifica il tipo di ritorno (opzionale ma buona pratica per chiarezza)
+        {
+            // --- Inizio del corpo della funzione (lambda) ---
+            nCells = 0;
+            grading = 1.0;
+
+            if (totalLength < 1e-9) {
+                return;
+            }
+            if (cellSizeStart < 1e-9 || cellSizeEnd < 1e-9) {
+                Info << "Warning in calculateGradingCells: cellSizeStart or cellSizeEnd is near zero. "
+                     << "Falling back to single cell." << endl;
+                nCells = 1;
+                grading = 1.0;
+                return;
+            }
+            if (Foam::mag(cellSizeEnd - cellSizeStart) < 1e-9 * cellSizeStart) {
+                nCells = Foam::max(1, label(round(totalLength / cellSizeStart)));
+                grading = 1.0;
+                return;
+            }
+
+            scalar r = cellSizeEnd / cellSizeStart;
+            scalar K = totalLength / cellSizeStart;
+
+            if (r <= 1.0 + 1e-6 || K <= 1.0 + 1e-6) {
+                nCells = Foam::max(1, label(round(totalLength / cellSizeStart)));
+                grading = 1.0;
+                return;
+            }
+
+            scalar n0 = Foam::max(1.0 + tolerance, K / r);
+            scalar n2 = K;
+
+            if (n2 < n0 || ceil(n0) >= floor(n2)) {
+                 nCells = Foam::max(1, label(round(totalLength / cellSizeStart)));
+                 grading = 1.0;
+                 return;
+            }
+
+            // Definisci la funzione f(n) interna alla lambda principale
+            auto calculateF = [&](scalar n_val) -> scalar {
+                if (n_val <= 1.0 + 1e-6) return -K;
+                scalar rn = pow(r, n_val / (n_val - 1.0));
+                scalar r1 = pow(r, 1.0 / (n_val - 1.0));
+                if (Foam::mag(r1 - 1.0) < 1e-9) return -K;
+                return (rn - 1.0) / (r1 - 1.0) - K;
+            }; // Fine della lambda interna calculateF
+
+            scalar f0 = calculateF(n0);
+            scalar n1 = 0.5 * (n0 + n2);
+            scalar f1 = calculateF(n1);
+
+            label iter = 0;
+            while (Foam::mag(n2 - n0) > tolerance && iter < maxIter) {
+                iter++;
+                if (f0 * f1 < 0) {
+                    n2 = n1;
+                } else {
+                    n0 = n1;
+                    f0 = f1;
+                }
+                n1 = 0.5 * (n0 + n2);
+                f1 = calculateF(n1);
+            }
+
+            nCells = Foam::max(1, label(round(n1)));
+            grading = (nCells <= 1) ? 1.0 : r;
+            // --- Fine del corpo della funzione (lambda) ---
+        }; // <-- IMPORTANTE: Punto e virgola alla fine della definizione della lambda!
+
+
+
+        // --- Basic Calculations ---
+        scalar radAngle = degToRad($degAngle); // 45 deg
+        scalar radAngleHalf = degToRad($degAngleHalf); // 22.5 deg
+        scalar pi = Foam::constant::mathematical::pi;
+        scalar conduit_base_z = -1.0 * ($h_conduit + $h_crater);
+        scalar crater_base_z = -1.0 * $h_crater;
+
+        // Radii
+        scalar r_cond_base = $r_conduit_base;
+        scalar r_cr_base = $r_crater_base;
+        scalar r_cr_top = $r_crater_top; // Also radius for Octagon and Inner Circle at z=0+
+        scalar r_icyl = $hor_cell_size_top_atm / cos(radAngle); // Intermediate Cylinder radius
+
+        // Corner coordinates cache (based on 45 deg for NE/SE/SW/NW)
+        auto getCorners = [&](scalar radius) {
+            struct Coords { scalar x, y; };
+            return Coords{radius * cos(radAngle), radius * sin(radAngle)};
+        };
+        auto corners_cond_base = getCorners(r_cond_base);
+        auto corners_cr_base = getCorners(r_cr_base);
+        auto corners_cr_top = getCorners(r_cr_top);
+        auto corners_icyl = getCorners(r_icyl);
+
+        // --- Cell Count Calculations (Keep as before) ---
+        // ... (The code for n_mult, n_angle, n_radial, nx/ny_out etc. remains unchanged) ...
+        int n_mult = pow(2, $n_vert_layers - 1);
+        int n_angle = ceil((r_icyl * cos(radAngle)) / $hor_cell_size_top_atm);
+        n_angle = Foam::max(1, n_angle);
+        int n_angle_mult = n_angle * n_mult;
+        int n_radial = n_angle;
+        int n_radial_mult = n_radial * n_mult;
+        int n_angle_mult_coarse = Foam::max(1, n_angle_mult / 2);
+        int n_radial_mult_coarse = Foam::max(1, n_radial_mult / 2);
+        int nx_pos_out = round((mag($atm_x_pos) - corners_icyl.x) / $hor_cell_size_top_atm);
+        nx_pos_out = Foam::max(1, nx_pos_out);
+        int nx_neg_out = round((mag($atm_x_neg) - corners_icyl.x) / $hor_cell_size_top_atm);
+        nx_neg_out = Foam::max(1, nx_neg_out);
+        int ny_pos_out = round((mag($atm_y_pos) - corners_icyl.y) / $hor_cell_size_top_atm);
+        ny_pos_out = Foam::max(1, ny_pos_out);
+        int ny_neg_out = round((mag($atm_y_neg) - corners_icyl.y) / $hor_cell_size_top_atm);
+        ny_neg_out = Foam::max(1, ny_neg_out);
+        int nx_pos_out_mult = nx_pos_out * n_mult;
+        int nx_neg_out_mult = nx_neg_out * n_mult;
+        int ny_pos_out_mult = ny_pos_out * n_mult;
+        int ny_neg_out_mult = ny_neg_out * n_mult;
+        // ... (nz calculations remain the same) ...
+        int nz_conduit = 0; 
+        if ($h_conduit > 0) 
+        { 
+            nz_conduit = round(($h_conduit * 8.0 * n_angle_mult_coarse) / (2.0 * pi * r_cond_base));
+            nz_conduit = Foam::max(1, nz_conduit);
+        }
+
+        // Compute the grading and vertical number of cells in crater
+        
+        n_radial_mult_coarse = n_radial * pow(2, innerMesh_refinementLevel[0]); // Use coarse counts for crater blocks
+        n_angle_mult_coarse = n_angle * pow(2, innerMesh_refinementLevel[0]);
+        
+        scalar dz_top_crater = $dz_to_dxy_crater_ratio * r_cr_top / ( n_angle_mult_coarse + n_radial_mult_coarse );
+        scalar dz_bottom_crater = $dz_to_dxy_crater_ratio * r_cr_base / ( n_angle_mult_coarse + n_radial_mult_coarse );   
+        int nz_crater = 1; 
+        scalar z_crater_grading = 1.0;
+        
+        calculateGradingCells($h_crater, dz_bottom_crater, dz_top_crater, nz_crater, z_crater_grading);
+        Info << "Calculated nz_crater = " << nz_crater << ", z_crater_grading = " << z_crater_grading << endl;        
+
+        // Compute the grading and vertical number of cells in first layer
+        scalar dz_atm_min = dz_top_crater;
+        os  << "dz_atm_min " << dz_atm_min << ";" << endl;
+        Info  << "dz_atm_min " << dz_atm_min << ";" << endl;
+
+        scalar dz_atm_max = $hor_cell_size_top_atm*$dz_to_dxy_atm_ratio / pow(2,$n_vert_layers-1);
+        os  << "dz_atm_max " << dz_atm_max << ";" << endl;
+        Info  << "dz_atm_max " << dz_atm_max << ";" << endl;
+
+        scalar dz_bottom_layer($atm_top_z * layer_fraction[1]);
+        Info << "dz_bottom_layer " << dz_bottom_layer << endl;
+
+        label nz_out; 
+        scalar z_out_grading;
+        calculateGradingCells(dz_bottom_layer, dz_atm_min, dz_atm_max, nz_out, z_out_grading);
+        Info << "Calculated nz_out = " << nz_out << ", z_out_grading = " << z_out_grading << endl;   
+
+        os  << "nz_out " << nz_out << ";" << endl;
+        os  << "z_out_grading " << z_out_grading << ";" << endl;
+
+        scalar dr_min = (r_cr_top - $coeff * 0.5 * corners_cr_top.x) / n_radial; 
+        scalar dr_max = $hor_cell_size_top_atm; 
+        scalar deltar_cylinder = r_icyl - r_cr_top; int n_radial_grading = 1; 
+        scalar radial_grading = 1.0;
+        // ... n_radial_grading solver ...
+        radial_grading = 1.0; // Keep deactivated for now
+        int n_radial_grading_mult = n_radial_grading * n_mult;
+
+
+        // --- REVISED Vertex Generation (N=0, CCW) ---
+        Info << "Revised Vertex Generation (N=0, CCW)" << endl;
+        os << "vertices" << endl;
+        os << "(" << endl;
+        label vertexCount = 0;
+        List<vector> points; // Store points
+
+        // Helper function
+        auto addVertex = [&](const vector& pt, const string& comment) {
+            os << "(" << pt.x() << " " << pt.y() << " " << pt.z() << ") // " << vertexCount << " " << comment << endl;
+            // Info << "(" << pt.x() << " " << pt.y() << " " << pt.z() << ") // " << vertexCount << " " << comment << endl;
+            points.append(pt);
+            vertexCount++;
+            return vertexCount - 1; // Return the index
+        };
+
+        // Function to generate 8 points on a circle/octagon (N=0, CCW)
+        auto makeRing = [&](label& startIdx, scalar r, scalar rCorner, scalar z, scalar dx, scalar dy, const string& prefix, const string& type) {
+            startIdx = vertexCount;
+            addVertex(vector(dx + 0,       dy + r, z), prefix + " " + type + " N");   // Idx 0
+            addVertex(vector(dx - rCorner, dy + rCorner, z), prefix + " " + type + " NW");  // Idx 1
+            addVertex(vector(dx - r,       dy + 0,       z), prefix + " " + type + " W");   // Idx 2
+            addVertex(vector(dx - rCorner, dy - rCorner, z), prefix + " " + type + " SW");  // Idx 3
+            addVertex(vector(dx + 0,       dy - r,       z), prefix + " " + type + " S");   // Idx 4
+            addVertex(vector(dx + rCorner, dy - rCorner, z), prefix + " " + type + " SE");  // Idx 5
+            addVertex(vector(dx + r,       dy + 0,       z), prefix + " " + type + " E");   // Idx 6
+            addVertex(vector(dx + rCorner, dy + rCorner, z), prefix + " " + type + " NE");  // Idx 7
+        };
+
+        // --- Storage for Start Indices ---
+        // Base Levels
+        label L_condBase_center = -1, L_condBase_oct_Start = -1, L_condBase_outer_Start = -1;
+        label L_crBase_center = -1,   L_crBase_oct_Start = -1,   L_crBase_outer_Start = -1;
+
+        // Atmospheric Layers (Index 0=unused, 1=z=0 base, 2=topL1/baseL2, ...)
+        List<label> L_center_Start($n_vert_layers + 2, -1);
+        List<label> L_oct_Start($n_vert_layers + 2, -1);       // Octagon (r=rc_top)
+        List<label> L_inr_Start($n_vert_layers + 2, -1);       // Inner Circle (r=rc_top)
+        List<label> L_inrDup_Start($n_vert_layers + 2, -1);    // Inner Circle Duplicates (only for L1 top / L2 base)
+        List<label> L_icyl_Start($n_vert_layers + 2, -1);      // Intermediate Cylinder (r=cyl_radius)
+        List<label> L_far_Start($n_vert_layers + 2, -1);       // Far field
+
+        // Indices of bottom vertices for layers > 1 (vertical duplicates)
+        List<label> L_bottom_center_Start($n_vert_layers + 2, -1);
+        List<label> L_bottom_oct_Start($n_vert_layers + 2, -1);
+        List<label> L_bottom_inr_Start($n_vert_layers + 2, -1);
+        List<label> L_bottom_inrDup_Start($n_vert_layers + 2, -1);
+        List<label> L_bottom_icyl_Start($n_vert_layers + 2, -1);
+        List<label> L_bottom_far_Start($n_vert_layers + 2, -1);
+
+        // --- Conduit Base Vertices (z = conduit_base_z) ---
+        if ($h_conduit > 0) {
+            scalar z = conduit_base_z;
+            scalar dx = $dx_crater_base + $dx_conduit_base;
+            scalar dy = $dy_crater_base + $dy_conduit_base;
+            L_condBase_center = addVertex(vector(dx, dy, z), "CondBase Ctr");
+            makeRing(L_condBase_oct_Start, $coeff*0.5*r_cond_base, 0.5*r_cond_base, z, dx, dy, "CondBase", "Oct");
+            makeRing(L_condBase_outer_Start, r_cond_base, r_cond_base* cos(radAngle), z, dx, dy, "CondBase", "Outer"); // Circle points
+        }
+
+        // --- Crater Base Vertices (z = crater_base_z) ---
+        {
+            scalar z = crater_base_z;
+            scalar dx = $dx_crater_base;
+            scalar dy = $dy_crater_base;
+            L_crBase_center = addVertex(vector(dx, dy, z), "CrBase Ctr");
+            Info << "vertexCount " << vertexCount << endl;
+            makeRing(L_crBase_oct_Start, 0.5*r_cr_base, $coeff*cos(radAngle)*0.5*r_cr_base, z, dx, dy, "CrBase", "Oct");
+            Info << "vertexCount " << vertexCount << endl;
+            makeRing(L_crBase_outer_Start, r_cr_base, r_cr_base * cos(radAngle), z, dx, dy, "CrBase", "Outer"); // Circle points
+            Info << "vertexCount " << vertexCount << endl;
+            Info << "crater base indexes " << L_crBase_center << L_crBase_oct_Start << L_crBase_outer_Start << endl;
+            
+        }
+
+        // --- Loop through atmospheric layers ---
+        for (label layer = 1; layer <= $n_vert_layers; ++layer) {
+            // Layer Index 'layer' runs 1 to N.
+            // Vertex List Index 'layer+1' corresponds to the Bottom of layer 'layer'.
+            // Vertex List Index 'layer' corresponds to the BOTTOM of layer 'layer' (except for L1 base at z=0, handled above).
+
+           
+            scalar z_level;
+
+            if (layer == 1) {
+                z_level = $crater_top_z; // Base of Layer 1 is z=0
+            } else {
+                // Bottom Z is the Top Z of the previous layer
+                z_level = $atm_top_z * layer_fraction[layer-1];
+            }
+
+            Info << "bottom level " << z_level << endl;
+
+            scalar r_expansion(z_level * cyl_radial_expansion[layer-1]);
+            r_cr_top = $r_crater_top + r_expansion; 
+            r_icyl = $hor_cell_size_top_atm / cos(radAngle) + r_expansion;
+
+            scalar dx = 0.0; // Assuming centered
+            scalar dy = 0.0;
+            label listIdxBottom = layer; // Index in lists for vertices at the Bottom of this layer
+
+            Info << "Generating vertices for Bottom of Layer " << layer << " (z=" << z_level << ", List Index " << listIdxBottom << ")" << endl;
+
+            // --- Generate Bottom vertices for Layer 'layer' ---
+            L_bottom_center_Start[listIdxBottom] = addVertex(vector(dx, dy, z_level), "L" + Foam::name(layer) + " Btm Ctr");
+            makeRing(L_bottom_oct_Start[listIdxBottom], 0.5*r_cr_top, $coeff*cos(radAngle)*0.5*r_cr_top, z_level, dx, dy, "L" + Foam::name(layer) + " Btm", "Oct");
+            makeRing(L_bottom_inr_Start[listIdxBottom], r_cr_top, r_cr_top * cos(radAngle), z_level, dx, dy, "L" + Foam::name(layer) + " Btm", "Inr");
+
+            L_bottom_inrDup_Start[listIdxBottom] = vertexCount; // Duplicates for mergePatchPairs interface at base of L2
+            for (label k = 0; k < 8; ++k) addVertex(points[L_bottom_inr_Start[listIdxBottom] + k], "L" + Foam::name(layer) + " BtmInrDup");
+
+            makeRing(L_bottom_icyl_Start[listIdxBottom], r_icyl, r_icyl * cos(radAngle), z_level, dx, dy, "L" + Foam::name(layer) + " Btm", "ICyl");
+
+            // --- Far Field Vertices (Systematic N=0, CCW Indexing) ---
+            L_bottom_far_Start[listIdxBottom] = vertexCount; // Or listIdx for z=0
+            string prefix = (listIdxBottom == 1) ? "z0" : "L" + Foam::name(layer) + " Btm";
+
+            addVertex(vector(0,              $atm_y_pos, z_level), prefix + " Far N0");          // New Idx 0
+            addVertex(vector(-corners_icyl.x, $atm_y_pos, z_level), prefix + " Far N-1");        // New Idx 1
+            addVertex(vector($atm_x_neg,      $atm_y_pos, z_level), prefix + " Far NWc");        // New Idx 2
+            addVertex(vector($atm_x_neg,       corners_icyl.y, z_level), prefix + " Far W1");    // New Idx 3
+            addVertex(vector($atm_x_neg,      0,          z_level), prefix + " Far W0");         // New Idx 4
+            addVertex(vector($atm_x_neg,      -corners_icyl.y, z_level), prefix + " Far W-1");   // New Idx 5
+            addVertex(vector($atm_x_neg,      $atm_y_neg, z_level), prefix + " Far SWc");        // New Idx 6
+            addVertex(vector(-corners_icyl.x, $atm_y_neg, z_level), prefix + " Far S-1");        // New Idx 7
+            addVertex(vector(0,              $atm_y_neg, z_level), prefix + " Far S0");          // New Idx 8
+            addVertex(vector(corners_icyl.x, $atm_y_neg, z_level), prefix + " Far S1");          // New Idx 9
+            addVertex(vector($atm_x_pos,      $atm_y_neg, z_level), prefix + " Far SEc");        // New Idx 10
+            addVertex(vector($atm_x_pos,      -corners_icyl.y, z_level), prefix + " Far E-1");   // New Idx 11
+            addVertex(vector($atm_x_pos,      0,          z_level), prefix + " Far E0");         // New Idx 12
+            addVertex(vector($atm_x_pos,       corners_icyl.y, z_level), prefix + " Far E1");    // New Idx 13
+            addVertex(vector($atm_x_pos,      $atm_y_pos, z_level), prefix + " Far NEc");        // New Idx 14
+            addVertex(vector(corners_icyl.x, $atm_y_pos, z_level), prefix + " Far N1");          // New Idx 15
+
+
+            z_level = $atm_top_z * layer_fraction[layer];
+
+            r_expansion = z_level * cyl_radial_expansion[layer];
+            r_cr_top = $r_crater_top + r_expansion; 
+            r_icyl = $hor_cell_size_top_atm / cos(radAngle) + r_expansion;
+                        
+            Info << "top level " << z_level << endl;
+
+            label listIdxTop = layer; // Index in lists for vertices at the TOP of this layer
+
+            Info << "Generating vertices for top of Layer " << layer << " (z=" << z_level << ", List Index " << listIdxTop << ")" << endl;
+
+            // --- Generate TOP vertices for Layer 'layer' ---
+            L_center_Start[listIdxTop] = addVertex(vector(dx, dy, z_level), "L" + Foam::name(layer) + " Top Ctr");
+            makeRing(L_oct_Start[listIdxTop], 0.5*r_cr_top, $coeff*cos(radAngle)*0.5*r_cr_top, z_level, dx, dy, "L" + Foam::name(layer) + " Top", "Oct");
+            makeRing(L_inr_Start[listIdxTop], r_cr_top, r_cr_top * cos(radAngle), z_level, dx, dy, "L" + Foam::name(layer) + " Top", "Inr");
+
+            L_inrDup_Start[listIdxTop] = vertexCount; // Duplicates for mergePatchPairs interface at base of L2
+            for (label k = 0; k < 8; ++k) addVertex(points[L_inr_Start[listIdxTop] + k], "L" + Foam::name(layer) + " TopInrDup");
+
+            makeRing(L_icyl_Start[listIdxTop], r_icyl, r_icyl * cos(radAngle), z_level, dx, dy, "L" + Foam::name(layer) + " Top", "ICyl");
+
+            // --- Far Field Vertices (Systematic N=0, CCW Indexing) ---
+            L_far_Start[listIdxTop] = vertexCount; // Or listIdx for z=0
+            prefix = (listIdxTop == 1) ? "z0" : "L" + Foam::name(layer) + " Top";
+
+            addVertex(vector(0,              $atm_y_pos, z_level), prefix + " Far N0");          // New Idx 0
+            addVertex(vector(-corners_icyl.x, $atm_y_pos, z_level), prefix + " Far N-1");        // New Idx 1
+            addVertex(vector($atm_x_neg,      $atm_y_pos, z_level), prefix + " Far NWc");        // New Idx 2
+            addVertex(vector($atm_x_neg,       corners_icyl.y, z_level), prefix + " Far W1");    // New Idx 3
+            addVertex(vector($atm_x_neg,      0,          z_level), prefix + " Far W0");         // New Idx 4
+            addVertex(vector($atm_x_neg,      -corners_icyl.y, z_level), prefix + " Far W-1");   // New Idx 5
+            addVertex(vector($atm_x_neg,      $atm_y_neg, z_level), prefix + " Far SWc");        // New Idx 6
+            addVertex(vector(-corners_icyl.x, $atm_y_neg, z_level), prefix + " Far S-1");        // New Idx 7
+            addVertex(vector(0,              $atm_y_neg, z_level), prefix + " Far S0");          // New Idx 8
+            addVertex(vector(corners_icyl.x, $atm_y_neg, z_level), prefix + " Far S1");          // New Idx 9
+            addVertex(vector($atm_x_pos,      $atm_y_neg, z_level), prefix + " Far SEc");        // New Idx 10
+            addVertex(vector($atm_x_pos,      -corners_icyl.y, z_level), prefix + " Far E-1");   // New Idx 11
+            addVertex(vector($atm_x_pos,      0,          z_level), prefix + " Far E0");         // New Idx 12
+            addVertex(vector($atm_x_pos,       corners_icyl.y, z_level), prefix + " Far E1");    // New Idx 13
+            addVertex(vector($atm_x_pos,      $atm_y_pos, z_level), prefix + " Far NEc");        // New Idx 14
+            addVertex(vector(corners_icyl.x, $atm_y_pos, z_level), prefix + " Far N1");          // New Idx 15
+
+        } // End layer loop
+
+        os << ");" << endl; // End vertices section
+
+        // --- Block, Edge, Boundary, Merge Sections Omitted ---
+        // ... These sections need to be generated using the new vertex indices ...
+
+
+        os << "blocks " << endl;
+        os << "(" << endl;
+
+                // Helper to get vertex index (can be defined again locally)
+                auto vIdx = [ & ](label groupStart, int offset) {
+                    return groupStart + offset;
+                };
+                
+        // --- Crater Blocks (Connect Base:Crater -> Top:z=0) ---
+        os << "    // --- Crater Blocks ---" << endl;
+        { // Create a scope for crater-specific variables
+            label nz = nz_crater;
+            scalar grading = z_crater_grading;
+            // int nr_c = n_radial_mult_coarse; // Use coarse counts for crater blocks
+            // int na_c = n_angle_mult_coarse;
+
+            int nr_c = n_radial * pow(2, innerMesh_refinementLevel[0]); // Use coarse counts for crater blocks
+            int na_c = n_angle * pow(2, innerMesh_refinementLevel[0]);
+
+            // Crater Center Blocks (4 blocks) - User Defined Topology
+            os << "    // Crater Center Blocks (Base: Crater, Top: z=0)" << endl;
+            for (int q = 0; q < 4; ++q) // Loop through NW, SW, SE, NE quadrants
+            {
+                // Define octagon vertex indices for the quadrant's base face (CCW order)
+                // q=0 (NW): Ctr, N(0), NW(1), W(2)
+                // q=1 (SW): Ctr, W(2), SW(3), S(4)
+                // q=2 (SE): Ctr, S(4), SE(5), E(6)
+                // q=3 (NE): Ctr, E(6), NE(7), N(0)
+                int oct_idx0 = (q * 2 + 0) % 8;
+                int oct_idx1 = (q * 2 + 1) % 8;
+                int oct_idx2 = (q * 2 + 2) % 8;
+
+                os << "    hex ("
+                   // Base Face (z=crater_base_z) - CCW Winding: Ctr, V0, V1, V2
+                   << L_crBase_center             << " " // v0 (Center)
+                   << vIdx(L_crBase_oct_Start, oct_idx0) << " " // v1
+                   << vIdx(L_crBase_oct_Start, oct_idx1) << " " // v2
+                   << vIdx(L_crBase_oct_Start, oct_idx2) << " " // v3
+                   // Top Face (z=0) - Corresponding vertices
+                   << L_bottom_center_Start[1]           << " " // v4 (Center @ z=0)
+                   << vIdx(L_bottom_oct_Start[1], oct_idx0) << " " // v5
+                   << vIdx(L_bottom_oct_Start[1], oct_idx1) << " " // v6
+                   << vIdx(L_bottom_oct_Start[1], oct_idx2) << ") " // v7
+                   // Cell counts (nr, na, nz) - Assuming radial along Oct->Ctr, angular along Oct arc
+                   // For center blocks, nr & na might need swapping depending on definition
+                   // Let's assume nr is Ctr->Oct, na is along the Oct arc segment for the quadrant
+                   << "( " << na_c << " " << na_c << " " << nz << ") simpleGrading (1 1 " << grading << ") // Crater Ctr Quadrant " << q << endl;
+            }
+            
+            // Crater Outer Blocks (8 blocks) - Connecting CrBase(Oct/Outer) to z=0(Oct/Inr)
+            os << "    // Crater Outer Blocks (Base: CrOct/CrOuter -> Top: z0Oct/z0Inr)" << endl;
+            for (int i = 0; i < 8; ++i) // Loop through the 8 segments (N->NW, NW->W, ...)
+            {
+                 int i_plus_1 = (i + 1) % 8; // Index of the next vertex CCW
+
+                 os << "    hex ("
+                    // Base Face (z=crater_base_z) - CCW Winding: Oct[i], Outer[i], Outer[i+1], Oct[i+1]
+                    << vIdx(L_crBase_oct_Start, i)        << " " // v0
+                    << vIdx(L_crBase_outer_Start, i)      << " " // v1
+                    << vIdx(L_crBase_outer_Start, i_plus_1) << " " // v2
+                    << vIdx(L_crBase_oct_Start, i_plus_1)   << " " // v3
+                    // Top Face (z=0) - Corresponding vertices: Oct[i], Inr[i], Inr[i+1], Oct[i+1]
+                    << vIdx(L_bottom_oct_Start[1], i)            << " " // v4
+                    << vIdx(L_bottom_inr_Start[1], i)            << " " // v5
+                    << vIdx(L_bottom_inr_Start[1], i_plus_1)     << " " // v6
+                    << vIdx(L_bottom_oct_Start[1], i_plus_1)     << ") " // v7
+                    // Cell counts (na, nr, nz) - Angular along segment, Radial Oct->Outer/Inr
+                    << "( " << na_c << " " << nr_c << " " << nz << ") simpleGrading (1 1 " << grading << ") // Crater Outer Segment " << i << endl;
+            }
+                       
+        } // End Crater Blocks scope
+
+        // --- Atmospheric Layers ---
+        for (label layer = 1; layer <= $n_vert_layers; ++layer) {
+            os << "    // --- Layer " << layer << " Blocks ---" << endl;
+
+            // --- Determine layer properties ---
+            int h_factor = Foam::max(0, layer-1);
+            int j = pow(2, h_factor); // Horizontal cell count multiplier
+
+            scalar z_bottom;
+            if (layer == 1) {
+                z_bottom = $crater_top_z; // Base of Layer 1 is z=0
+            } else {
+                // Bottom Z is the Top Z of the previous layer
+                z_bottom = $atm_top_z * layer_fraction[layer-1];
+            }
+
+            scalar z_top = $atm_top_z * layer_fraction[layer];
+
+    
+            int n = $n_vert_layers;
+            int nz_layer;
+            scalar grading_layer;
+            if ( layer == 1)
+            {
+                nz_layer = nz_out;
+                grading_layer = z_out_grading;                
+            }
+            else
+            {
+                // Compute the grading and vertical number of cells in layer>1
+                scalar layer_z = z_top - z_bottom;
+                
+                dz_atm_min = $hor_cell_size_top_atm / pow(2, $n_vert_layers-layer) * atmCells_aspect_ratio_bottom[layer-2];                
+                dz_atm_max = $hor_cell_size_top_atm / pow(2, $n_vert_layers-layer) * atmCells_aspect_ratio_top[layer-2];
+                
+                calculateGradingCells(layer_z, dz_atm_min, dz_atm_max, nz_layer, grading_layer);
+                Info << atmCells_aspect_ratio_bottom[layer-2] << atmCells_aspect_ratio_top[layer-2] << endl;
+                Info << " dz_atm_min = " << dz_atm_min << ", dz_atm_max = " << dz_atm_max << endl;
+                Info << "Calculated nz_layer = " << nz_layer << ", grading_layer = " << grading_layer << endl; 
+            }
+
+            // Get Vertex Start Indices
+            label L_btm_center = L_bottom_center_Start[layer]; 
+            label L_btm_oct    = L_bottom_oct_Start[layer];    
+            label L_btm_inr    = L_bottom_inr_Start[layer];    
+            label L_btm_inrDup = L_bottom_inrDup_Start[layer]; // Not used for these blocks
+            label L_btm_icyl   = L_bottom_icyl_Start[layer];   
+            label L_btm_far    = L_bottom_far_Start[layer];    
+
+            label L_top_center = L_center_Start[layer];
+            label L_top_oct    = L_oct_Start[layer];
+            label L_top_inr    = L_inr_Start[layer];
+            label L_top_inrDup = L_inrDup_Start[layer]; // Not used for these blocks
+            label L_top_icyl   = L_icyl_Start[layer];
+            label L_top_far    = L_far_Start[layer];
+
+            if (nz_layer > 0) { // Only define blocks if layer has non-zero cells vertically
+
+                // --- Atmospheric Center Blocks (Ctr -> Oct) ---
+                // Layer 1 uses coarse counts. Layers > 1 scale the FINE counts from L1.
+                int current_na_ctr;
+                if (layer == 1) {
+                    current_na_ctr = n_angle_mult_coarse; // Match coarse blocks below/beside
+                } else {
+                    // Scale the FINE angular count from L1 by factor j for layers > 1
+                    current_na_ctr = Foam::max(1, n_angle_mult / j);
+                }
+
+                current_na_ctr = n_angle * pow(2, innerMesh_refinementLevel[layer-1]);
+
+                Info << "layer " << layer << " current_na_ctr " << current_na_ctr << endl;
+
+                os << "    // L" << layer << " Center Blocks (Ctr->Oct)" << endl;
+                for (int q = 0; q < 4; ++q) // Loop through NW, SW, SE, NE quadrants
+                {
+                    int oct_idx0 = (q * 2 + 0) % 8; // N, W, S, E
+                    int oct_idx1 = (q * 2 + 1) % 8; // NW, SW, SE, NE
+                    int oct_idx2 = (q * 2 + 2) % 8; // W, S, E, N
+
+                    os << "    hex ("
+                       // Base Face (z=Lower) - CCW Winding: Ctr, V0, V1, V2
+                       << L_btm_center          << " " // v0 (Center @ bottom)
+                       << vIdx(L_btm_oct, oct_idx0) << " " // v1
+                       << vIdx(L_btm_oct, oct_idx1) << " " // v2
+                       << vIdx(L_btm_oct, oct_idx2) << " " // v3
+                       // Top Face (z=Higher) - Corresponding vertices
+                       << L_top_center          << " " // v4 (Center @ top)
+                       << vIdx(L_top_oct, oct_idx0) << " " // v5
+                       << vIdx(L_top_oct, oct_idx1) << " " // v6
+                       << vIdx(L_top_oct, oct_idx2) << ") " // v7
+                       // Cell counts (na, na, nz) - Use current_na_ctr for planar counts
+                       << "( " << current_na_ctr << " " << current_na_ctr << " " << nz_layer << ") simpleGrading (1 1 " << grading_layer << ") // L" << layer << " Ctr Quadrant " << q << endl;
+                }
+
+                // --- Atmospheric Inner Blocks (Octagon -> Inner Circle) ---
+                // Angular count (along octagon) must match center blocks.
+                // Radial count scales based on coarse count.
+                int current_na_in; // Angular count (along Oct segment)
+                int current_nr_in; // Radial count (Oct -> Inr)
+
+                if (layer == 1) {
+                    current_na_in = n_angle_mult_coarse;
+                    current_nr_in = n_radial_mult_coarse;
+                } else {
+                    // Angular count MUST match Center blocks for L>1 -> use scaled FINE count
+                    current_na_in = Foam::max(1, n_angle_mult / j);
+                    // Radial count can scale from the COARSE count
+                    current_nr_in = Foam::max(1, n_radial_mult / j);
+                }
+                
+                current_na_in = n_angle * pow(2, innerMesh_refinementLevel[layer-1]);
+                current_nr_in = n_radial * pow(2, innerMesh_refinementLevel[layer-1]);
+
+                Info << "layer " << layer << " current_na_in " << current_na_in << endl;
+                Info << "layer " << layer << " current_nr_in " << current_nr_in << endl;
+
+                os << "    // L" << layer << " Inner Blocks (Oct->Inr)" << endl;
+                for (int i = 0; i < 8; ++i) // Loop through the 8 segments
+                {
+                    int i_plus_1 = (i + 1) % 8; // Index of the next vertex CCW
+
+                    os << "    hex ("
+                       // Base Face (z=Lower) - CCW Order: Oct[i], Oct[i+1], Inr[i+1], Inr[i]
+                       << vIdx(L_btm_oct, i)        << " " // v0
+                       << vIdx(L_btm_inr, i)        << " " // v3
+                       << vIdx(L_btm_inr, i_plus_1) << " " // v2
+                       << vIdx(L_btm_oct, i_plus_1) << " " // v1
+                       // Top Face (z=Higher) - Corresponding vertices
+                       << vIdx(L_top_oct, i)        << " " // v4
+                       << vIdx(L_top_inr, i)        << " " // v7
+                       << vIdx(L_top_inr, i_plus_1) << " " // v6
+                       << vIdx(L_top_oct, i_plus_1) << ") " // v5
+                       // Cell counts (nx ny nz) -> nx along v0->v1 (angular), ny along v1->v2 (radial)
+                       // Use current_na_in for angular, current_nr_in for radial
+                       << "( " << current_nr_in << " " << current_na_in << " " << nz_layer 
+                       << ") simpleGrading (1 1 " << grading_layer << ") // L" << layer << " Inner Segment " << i << endl;
+                }
+
+                // --- Atmospheric Radial Interface Blocks (Inner Circle -> Intermediate Cylinder) ---
+                // Counts for L1 use FINE _mult counts (for radial grading zone).
+                // Counts for L>1 scale the BASE fine counts (n_radial_grading, n_angle) by 'j'.
+                int n_rad_gr_interface = Foam::max(1, n_radial_grading_mult / j); // Radial cells Inr -> Icyl (grading zone)
+                int n_ang_out_interface = Foam::max(1, n_angle_mult / j);          // Angular cells along segment
+                scalar rad_gr_val = 1.0; // Apply radial grading only in L1 if enabled
+
+                os << "    // L" << layer << " Radial Interface Blocks (Inr[Dup?]->Icyl)" << endl;
+                for (int i = 0; i < 8; ++i) // Loop through the 8 segments
+                {
+                    int i_plus_1 = (i + 1) % 8; // Index of the next vertex CCW
+
+                    os << "    hex ("
+                       // Base Face (z=Lower) - CCW Order: Inr[i], Inr[i+1], Icyl[i+1], Icyl[i]
+                       // L_radial_base_inner correctly points to InrDup for L1 base, or Inr for L>1 base
+                       << vIdx(L_btm_inrDup, i)        << " " // v0
+                       << vIdx(L_btm_icyl, i)                 << " " // v1
+                       << vIdx(L_btm_icyl, i_plus_1)          << " " // v2
+                       << vIdx(L_btm_inrDup, i_plus_1) << " " // v3
+                       // Top Face (z=Higher) - Corresponding vertices
+                       << vIdx(L_top_inrDup, i)                  << " " // v4
+                       << vIdx(L_top_icyl, i)                 << " " // v7
+                       << vIdx(L_top_icyl, i_plus_1)          << " " // v6
+                       << vIdx(L_top_inrDup, i_plus_1)           << ") " // v5
+                       // Cell counts (nx ny nz) -> nx along v0->v1 (angular), ny along v1->v2 (radial)
+                       << "( " << n_ang_out_interface << " " << n_rad_gr_interface << " " << nz_layer 
+                       << ") simpleGrading (1 " << rad_gr_val << " " << grading_layer << ") // L" << layer << " Interface Segment " << i << endl;
+                }
+
+                // --- Atmospheric Outer Blocks (Icyl -> Far) - Single Loop Strategy ---
+                // Calculate scaled cell counts for this layer
+                int n_ang_out = Foam::max(1, n_angle_mult / j); // Fine angular count along Icyl segments
+                int current_nx_p = nx_pos_out_mult / j;
+                int current_nx_n = nx_neg_out_mult / j;
+                int current_ny_p = ny_pos_out_mult / j;
+                int current_ny_n = ny_neg_out_mult / j;
+
+                os << "    // L" << layer << " Outer Blocks (Icyl->Far)" << endl;
+                for (int i = 0; i < 4; ++i) // Loop through 4 quadrants (i=0:N, i=1:W, i=2:S, i=3:E)
+                {
+                    // --- Calculate Indices (with Modulo for wrap-around) ---
+                    // Icyl Indices (Modulo 8)
+                    int icyl_idx_prev = (2 * i + 0) % 8; // N, W, S, E
+                    int icyl_idx_corn = (2 * i + 1) % 8; // NW, SW, SE, NE
+                    int icyl_idx_next = (2 * i + 2) % 8; // W, S, E, N
+
+                    // Far Indices (Modulo 16)
+                    int far_idx_prev0 = (4 * i + 0) % 16; // N0, W0, S0, E0
+                    int far_idx_prev1 = (4 * i + 1) % 16; // N-1, W-1, S1, E1
+                    int far_idx_corn  = (4 * i + 2) % 16; // NWc, SWc, SEc, NEc
+                    int far_idx_next1 = (4 * i + 3) % 16; // W1, S-1, E-1, N1
+                    int far_idx_next0 = (4 * i + 4) % 16; // W0, S0, E0, N0
+
+                    // --- Determine Radial Cell Counts based on Quadrant i ---
+                    int n1_cor, n2_cor;   // Counts for Block 2 (Corner)
+                    
+                    if (i == 0) { // North Quadrant (N -> NW -> W)
+                        n1_cor  = current_nx_n; n2_cor  = current_ny_p; // Block 2 (NW corner): nx-, ny+                                               
+                    } else if (i == 1) { // West Quadrant (W -> SW -> S)
+                        n1_cor  = current_ny_n; n2_cor  = current_nx_n; // Block 2 (SW corner): nx-, ny-
+                    } else if (i == 2) { // South Quadrant (S -> SE -> E)
+                        n1_cor  = current_nx_p; n2_cor  = current_ny_n; // Block 2 (SE corner): nx+, ny-
+                    } else { // i == 3, East Quadrant (E -> NE -> N)
+                        n1_cor  = current_ny_p; n2_cor  = current_nx_p; // Block 2 (NE corner): nx+, ny+
+                    }
+
+                    // --- Define the 3 Blocks for this Quadrant ---
+
+                    // Block 1: Previous Edge (e.g., N-NW edge for i=0)
+                    os << "    hex ("
+                       // Base Face (CCW): Icyl[prev], Far[prev0], Far[prev1], Icyl[corner]
+                       << vIdx(L_btm_icyl, icyl_idx_prev) << " " // v0
+                       << vIdx(L_btm_far,  far_idx_prev0) << " " // v1
+                       << vIdx(L_btm_far,  far_idx_prev1) << " " // v2
+                       << vIdx(L_btm_icyl, icyl_idx_corn) << " " // v3
+                       // Top Face: Corresponding vertices
+                       << vIdx(L_top_icyl, icyl_idx_prev) << " " // v4
+                       << vIdx(L_top_far,  far_idx_prev0) << " " // v5
+                       << vIdx(L_top_far,  far_idx_prev1) << " " // v6
+                       << vIdx(L_top_icyl, icyl_idx_corn) << ") " // v7
+                       << "( " << n2_cor << " " << n_ang_out << " " << nz_layer << ") simpleGrading (1 1 " << grading_layer << ") // L" << layer << " Outer Edge " << i << ".1" << endl;
+
+                    // Block 2: Corner (e.g., NW corner for i=0)
+                    os << "    hex ("
+                       // Base Face (CCW): Icyl[corner], Far[prev1], Far[corner], Far[next1]
+                       << vIdx(L_btm_icyl, icyl_idx_corn) << " " // v0
+                       << vIdx(L_btm_far,  far_idx_prev1) << " " // v1
+                       << vIdx(L_btm_far,  far_idx_corn)  << " " // v2
+                       << vIdx(L_btm_far,  far_idx_next1) << " " // v3
+                       // Top Face: Corresponding vertices
+                       << vIdx(L_top_icyl, icyl_idx_corn) << " " // v4
+                       << vIdx(L_top_far,  far_idx_prev1) << " " // v5
+                       << vIdx(L_top_far,  far_idx_corn)  << " " // v6
+                       << vIdx(L_top_far,  far_idx_next1) << ") " // v7
+                       // Cell Counts: nx, ny based on quadrant
+                       << "( " << n2_cor << " " << n1_cor << " " << nz_layer << ") simpleGrading (1 1 " << grading_layer << ") // L" << layer << " Outer Corner " << i << endl;
+
+                    // Block 3: Next Edge (e.g., NW-W edge for i=0)
+                    os << "    hex ("
+                       // Base Face (CCW): Icyl[corner], Far[next1], Far[next0], Icyl[next]
+                       << vIdx(L_btm_icyl, icyl_idx_corn) << " " // v0
+                       << vIdx(L_btm_far,  far_idx_next1) << " " // v1
+                       << vIdx(L_btm_far,  far_idx_next0) << " " // v2
+                       << vIdx(L_btm_icyl, icyl_idx_next) << " " // v3
+                       // Top Face: Corresponding vertices
+                       << vIdx(L_top_icyl, icyl_idx_corn) << " " // v4
+                       << vIdx(L_top_far,  far_idx_next1) << " " // v5
+                       << vIdx(L_top_far,  far_idx_next0) << " " // v6
+                       << vIdx(L_top_icyl, icyl_idx_next) << ") " // v7
+                       << "( " << n1_cor << " " << n_ang_out << " " << nz_layer << ") simpleGrading (1 1 " << grading_layer << ") // L" << layer << " Outer Edge " << i << ".2" << endl;
+
+                } // End quadrant loop i
+
+            } // End if (nz_layer > 0)
+        } // End layer loop
+
+        os << ");" << endl;
+
+        // --- Edges Definition ---
+        os << "edges" << endl;
+        os << "(" << endl;
+
+        // Helper function to generate 8 arcs for a ring (N=0, CCW) using a loop
+        auto makeArcs = [&](label ringStartIdx, scalar r, scalar z, scalar dx, scalar dy, const string& commentPrefix)
+        {
+            if (ringStartIdx < 0) return; // Skip if the ring doesn't exist
+
+            for (int i = 0; i < 8; ++i) // Loop through the 8 segments
+            {
+                label v_start = vIdx(ringStartIdx, i);        // Start vertex of arc (N, NW, W, ...)
+                label v_end   = vIdx(ringStartIdx, (i + 1)% 8);    // End vertex of arc (NW, W, SW, ...)
+
+                Info << "v_start " << v_start << " v_end " << v_end << endl;
+
+                // Calculate angle for the midpoint of the current arc
+                // Angle = 0 is +X (East). Angles increase CCW.
+                // Angle of vertex i (N=0, NW=1...) CCW from East is 90 + i*45 degrees.
+                scalar angle_v_start_deg = 90.0 + i * $degAngle; // $degAngle is 45.0
+                scalar angle_mid_deg = angle_v_start_deg + $degAngleHalf; // Add 22.5 deg CCW for midpoint
+                scalar angle_mid_rad = degToRad(angle_mid_deg);
+
+                // Calculate midpoint coordinates
+                scalar xArc = dx + r * cos(angle_mid_rad);
+                scalar yArc = dy + r * sin(angle_mid_rad);
+
+                // Define the arc edge
+                os << "    arc " << v_start << " " << v_end << " (" << xArc << " " << yArc << " " << z << ") // " << commentPrefix << " " << i << endl;
+            }
+        };
+
+        // --- Define Arcs for Conduit Base Outer Ring ---
+        if ($h_conduit > 0) {
+             scalar dx = $dx_crater_base + $dx_conduit_base;
+             scalar dy = $dy_crater_base + $dy_conduit_base;
+             makeArcs(L_condBase_outer_Start, r_cond_base, conduit_base_z, dx, dy, "CondBase Outer");
+        }
+
+        // --- Define Arcs for Crater Base Outer Ring ---
+        {
+             scalar dx = $dx_crater_base;
+             scalar dy = $dy_crater_base;
+             Info << "L_crBase_outer_Start " << L_crBase_outer_Start << endl;
+             makeArcs(L_crBase_outer_Start, r_cr_base, crater_base_z, dx, dy, "CrBase Outer");
+        }
+
+        /*
+
+        // --- Define Arcs for z=0 Inner Circle (Crater Top Edge for Inner Blocks) ---
+        {
+             scalar dx = 0.0;
+             scalar dy = 0.0;
+             // Use L_inr_Start[0] which corresponds to the vertices at z=0
+             makeArcs(L_inr_Start[0], r_cr_top, $crater_top_z, dx, dy, "z0 Inr");
+        }
+
+        // --- Define Arcs for z=0 Inner Circle Duplicates (Crater Top Edge for Interface Blocks) ---
+        {
+             scalar dx = 0.0;
+             scalar dy = 0.0;
+             // Use L_inrDup_Start[0] which corresponds to the duplicate vertices at z=0
+             makeArcs(L_inrDup_Start[0], r_cr_top, $crater_top_z, dx, dy, "z0 InrDup");
+        }
+        
+        */
+
+        os << ");" << endl; // End edges section
+
+        // --- Edges Definition ---
+        os << "boundary" << endl;
+        os << "(" << endl;
+
+        // --- terrain_in (Crater Interior Surface - No Conduit Case) ---
+        os << "    terrain_in // Crater Internal Surface (Base + Walls)" << endl;
+        os << "    {" << endl;
+        os << "        type wall;" << endl;
+        os << "        inGroups (terrain);" << endl;
+        os << "        faces" << endl;
+        os << "        (" << endl;
+
+        // --- Crater Base Faces ---
+        os << "            // Crater Base Faces (Center Blocks + Outer Blocks)" << endl;
+        // Base faces of the 4 Center Crater blocks
+        for (int q = 0; q < 4; ++q)
+        {
+             int oct_idx0 = (q * 2 + 0) % 8;
+             int oct_idx1 = (q * 2 + 1) % 8;
+             int oct_idx2 = (q * 2 + 2) % 8;
+             // Base Face vertices: Ctr, Oct[idx0], Oct[idx1], Oct[idx2]
+             os << "            (" << L_crBase_center << " " << vIdx(L_crBase_oct_Start, oct_idx0) << " " << vIdx(L_crBase_oct_Start, oct_idx1) << " " << vIdx(L_crBase_oct_Start, oct_idx2) << ") // Cr Base Ctr Quad " << q << endl;
+        }
+        // Base faces of the 8 Outer Crater blocks
+        for (int i = 0; i < 8; ++i)
+        {
+             int i_plus_1 = (i + 1) % 8;
+             // Base Face vertices: CrOct[i], CrOuter[i], CrOuter[i+1], CrOct[i+1]
+             os << "            (" << vIdx(L_crBase_oct_Start, i) << " " << vIdx(L_crBase_outer_Start, i) << " " << vIdx(L_crBase_outer_Start, i_plus_1) << " " << vIdx(L_crBase_oct_Start, i_plus_1) << ") // Cr Base Outer Seg " << i << endl;
+        }
+
+        // --- Crater Wall Faces ---
+        // These are the outermost vertical faces of the 8 Outer Crater blocks.
+        // They connect the CrBase Outer Ring to the z=0 Inner Circle Ring.
+        os << "            // Crater Wall Faces (Outer faces of Outer Blocks)" << endl;
+        for (int i = 0; i < 8; ++i)
+        {
+             int i_plus_1 = (i + 1) % 8;
+             // Face vertices: CrOuter[i], z0Inr[i], z0Inr[i+1], CrOuter[i+1]
+             // Ensure CCW order when viewed from OUTSIDE the crater (inside the mesh block)
+             // Order should be: BottomLeft -> TopLeft -> TopRight -> BottomRight
+             // v1(CrOuter[i]) -> v5(z0Inr[i]) -> v6(z0Inr[i+1]) -> v2(CrOuter[i+1])
+             os << "            (" << vIdx(L_crBase_outer_Start, i) << " " << vIdx(L_bottom_inr_Start[1], i) << " " << vIdx(L_bottom_inr_Start[1], i_plus_1) << " " << vIdx(L_crBase_outer_Start, i_plus_1) << ") // Cr Wall Seg " << i << endl;
+        }
+
+        os << "        );" << endl;
+        os << "    }" << endl; // End terrain_in
+
+        // --- terrain_out (Outer Ground Surface at z=0) ---
+        // Uses the vertices defined as the BOTTOM of Layer 1, accessed via index 1
+        // in the L_bottom_*_Start lists.
+        os << "    terrain_out // Outer Ground Surface (z=0)" << endl;
+        os << "    {" << endl;
+        os << "        type wall;" << endl;
+        os << "        inGroups (terrain);" << endl;
+        os << "        faces" << endl;
+        os << "        (" << endl;
+
+        // Get Vertex Start Indices for Bottom of Layer 1 (list index 1)
+        label L1_btm_inrDup = L_bottom_inrDup_Start[1]; // Inner Circle Duplicates @ bottom L1
+        label L1_btm_icyl   = L_bottom_icyl_Start[1];   // Intermediate Cylinder @ bottom L1
+        label L1_btm_far    = L_bottom_far_Start[1];    // Far Field @ bottom L1
+
+        // Check if indices are valid (were generated)
+        if (L1_btm_inrDup < 0 || L1_btm_icyl < 0 || L1_btm_far < 0) {
+             Info << "Error generating terrain_out: Vertex indices for bottom of Layer 1 not found." << endl;
+        } else {
+
+            // --- Base faces of Layer 1 Radial Interface blocks (InrDup -> Icyl) ---
+            os << "            // L1 Radial Interface Blocks Base Faces" << endl;
+            for (int i = 0; i < 8; ++i)
+            {
+                 int i_plus_1 = (i + 1) % 8;
+                 // Base Face (CCW): InrDup[i], InrDup[i+1], Icyl[i+1], Icyl[i]
+                 os << "            ("
+                    << vIdx(L1_btm_inrDup, i)        << " "
+                    << vIdx(L1_btm_inrDup, i_plus_1) << " "
+                    << vIdx(L1_btm_icyl, i_plus_1)   << " "
+                    << vIdx(L1_btm_icyl, i)          << ") // L1 Interface Base " << i << endl;
+            }
+
+            // --- Base faces of Layer 1 Outer blocks (Icyl -> Far) ---
+            os << "            // L1 Outer Blocks Base Faces" << endl;
+            for (int i = 0; i < 4; ++i) // Loop through 4 quadrants (i=0:N, i=1:W, i=2:S, i=3:E)
+            {
+                // Calculate Indices (with Modulo for wrap-around)
+                int icyl_idx_prev = (2 * i + 0) % 8; int icyl_idx_corn = (2 * i + 1) % 8; int icyl_idx_next = (2 * i + 2) % 8;
+                int far_idx_prev0 = (4 * i + 0) % 16; int far_idx_prev1 = (4 * i + 1) % 16; int far_idx_corn  = (4 * i + 2) % 16;
+                int far_idx_next1 = (4 * i + 3) % 16; int far_idx_next0 = (4 * i + 4) % 16;
+
+                // Base Face Block 1 (Previous Edge) CCW: Icyl[prev], Far[prev0], Far[prev1], Icyl[corner]
+                os << "            ("
+                   << vIdx(L1_btm_icyl, icyl_idx_prev) << " "
+                   << vIdx(L1_btm_far,  far_idx_prev0) << " "
+                   << vIdx(L1_btm_far,  far_idx_prev1) << " "
+                   << vIdx(L1_btm_icyl, icyl_idx_corn) << ") // L1 Outer Base Edge " << i << ".1" << endl;
+
+                // Base Face Block 2 (Corner) CCW: Icyl[corner], Far[prev1], Far[corner], Far[next1]
+                os << "            ("
+                   << vIdx(L1_btm_icyl, icyl_idx_corn) << " "
+                   << vIdx(L1_btm_far,  far_idx_prev1) << " "
+                   << vIdx(L1_btm_far,  far_idx_corn)  << " "
+                   << vIdx(L1_btm_far,  far_idx_next1) << ") // L1 Outer Base Corner " << i << endl;
+
+                // Base Face Block 3 (Next Edge) CCW: Icyl[corner], Far[next1], Far[next0], Icyl[next]
+                os << "            ("
+                   << vIdx(L1_btm_icyl, icyl_idx_corn) << " "
+                   << vIdx(L1_btm_far,  far_idx_next1) << " "
+                   << vIdx(L1_btm_far,  far_idx_next0) << " "
+                   << vIdx(L1_btm_icyl, icyl_idx_next) << ") // L1 Outer Base Edge " << i << ".2" << endl;
+            }
+        } // End else (indices valid)
+
+        os << "        );" << endl;
+        os << "    }" << endl << endl; // End terrain_out
+
+        // --- atm (Outer Atmospheric Boundary) ---
+        os << "    atm" << endl;
+        os << "    {" << endl;
+        // Choose appropriate type based on your simulation needs
+        // e.g., patch, pressureInletOutletVelocity, atmosphere, etc.
+        os << "        type patch;" << endl;
+        os << "        faces" << endl;
+        os << "        (" << endl;
+
+        // Outer loop: Iterate through each atmospheric layer
+        for (label layer = 1; layer <= $n_vert_layers; ++layer)
+        {
+            os << "            // Faces for Layer " << layer << endl;
+
+            // Get Vertex Start Indices for the Far Field ring at the
+            // BOTTOM and TOP of the current layer 'layer'
+            // Using index 'layer' for both bottom and top based on list definition
+            label btmFarStart = L_bottom_far_Start[layer]; // Vertices at the base of this layer
+            label topFarStart = L_far_Start[layer];       // Vertices at the top of this layer
+
+            // Check if indices are valid
+            if (btmFarStart < 0 || topFarStart < 0) {
+                 Info << "Error generating atm patch: Vertex indices for layer "
+                                        << layer << " not found." << endl;
+                 continue; // Skip to next layer if indices are bad
+            }
+
+            // Inner loop: Iterate through the 16 far-field boundary segments
+            for (int i = 0; i < 16; ++i)
+            {
+                 int i_plus_1 = (i + 1) % 16; // Index of the next vertex (wraps around)
+
+                 // Define the vertical face connecting the bottom edge to the top edge
+                 // Order: (BottomLeft, BottomRight, TopRight, TopLeft) for outward normal
+                 label v0 = vIdx(btmFarStart, i);
+                 label v1 = vIdx(btmFarStart, i_plus_1);
+                 label v2 = vIdx(topFarStart, i_plus_1);
+                 label v3 = vIdx(topFarStart, i);
+
+                 os << "            (" << v0 << " " << v1 << " " << v2 << " " << v3 << ") // L" << layer << " Atm Face " << i << endl;
+            }
+        } // End layer loop
+
+        os << "        );" << endl;
+        os << "    }" << endl << endl; // End atm patch
+
+
+        // --- top (Top Atmospheric Boundary) ---
+        os << "    top" << endl;
+        os << "    {" << endl;
+        // Choose appropriate type: patch, atmosphere, symmetryPlane (if applicable), etc.
+        os << "        type patch;" << endl;
+        os << "        faces" << endl;
+        os << "        (" << endl;
+
+        // Get Vertex Start Indices for the TOP of the FINAL layer (layer = N)
+        label N = $n_vert_layers; // Index for the lists holding top vertex indices
+        label topCenter = L_center_Start[N];
+        label topOct    = L_oct_Start[N];
+        label topInr    = L_inr_Start[N];
+        label topInrDup = L_inrDup_Start[N]; // Not needed, same as topInr at this level
+        label topIcyl   = L_icyl_Start[N];
+        label topFar    = L_far_Start[N];
+
+        // Check if indices are valid
+        if (topCenter < 0 || topOct < 0 || topInr < 0 || topIcyl < 0 || topFar < 0) {
+             Info << "Error generating top patch: Vertex indices for top layer ("
+                                    << N << ") not found." << endl;
+        } else {
+
+            os << "            // Top Faces of Layer " << N << " Blocks" << endl;
+
+            // --- Top Faces of Center Blocks (Layer N) ---
+            os << "            // Top Faces: Center Blocks (Ctr->Oct)" << endl;
+            for (int q = 0; q < 4; ++q) // Loop through NW, SW, SE, NE quadrants
+            {
+                int oct_idx0 = (q * 2 + 0) % 8; // N, W, S, E
+                int oct_idx1 = (q * 2 + 1) % 8; // NW, SW, SE, NE
+                int oct_idx2 = (q * 2 + 2) % 8; // W, S, E, N
+                // Top Face (CCW Winding): Ctr, V0, V1, V2
+                os << "            ("
+                   << topCenter          << " " // v4 (Center @ top)
+                   << vIdx(topOct, oct_idx0) << " " // v5
+                   << vIdx(topOct, oct_idx1) << " " // v6
+                   << vIdx(topOct, oct_idx2) << ") // Top Ctr Quad " << q << endl;
+            }
+
+            // --- Top Faces of Inner Blocks (Layer N) ---
+            os << "            // Top Faces: Inner Blocks (Oct->Inr)" << endl;
+            for (int i = 0; i < 8; ++i) // Loop through the 8 segments
+            {
+                int i_plus_1 = (i + 1) % 8;
+                // Top Face (CCW Order): Oct[i], Oct[i+1], Inr[i+1], Inr[i]
+                os << "            ("
+                   << vIdx(topOct, i)        << " " // v4
+                   << vIdx(topOct, i_plus_1) << " " // v5
+                   << vIdx(topInr, i_plus_1) << " " // v6
+                   << vIdx(topInr, i)        << ") // Top Inner Seg " << i << endl;
+            }
+
+            // --- Top Faces of Radial Interface Blocks (Layer N) ---
+            os << "            // Top Faces: Radial Interface Blocks (Inr->Icyl)" << endl;
+            for (int i = 0; i < 8; ++i) // Loop through the 8 segments
+            {
+                int i_plus_1 = (i + 1) % 8;
+                // Top Face (CCW Order): Inr[i], Inr[i+1], Icyl[i+1], Icyl[i]
+                os << "            ("
+                   << vIdx(topInrDup, i)        << " " // v4
+                   << vIdx(topInrDup, i_plus_1) << " " // v5
+                   << vIdx(topIcyl, i_plus_1) << " " // v6
+                   << vIdx(topIcyl, i)        << ") // Top Interface Seg " << i << endl;
+            }
+
+            // --- Top Faces of Outer Blocks (Layer N) ---
+            os << "            // Top Faces: Outer Blocks (Icyl->Far)" << endl;
+            for (int i = 0; i < 4; ++i) // Loop through 4 quadrants (i=0:N, i=1:W, i=2:S, i=3:E)
+            {
+                // Calculate Indices (with Modulo for wrap-around)
+                int icyl_idx_prev = (2 * i + 0) % 8; int icyl_idx_corn = (2 * i + 1) % 8; int icyl_idx_next = (2 * i + 2) % 8;
+                int far_idx_prev0 = (4 * i + 0) % 16; int far_idx_prev1 = (4 * i + 1) % 16; int far_idx_corn  = (4 * i + 2) % 16;
+                int far_idx_next1 = (4 * i + 3) % 16; int far_idx_next0 = (4 * i + 4) % 16;
+
+                // Top Face Block 1 (Previous Edge) CCW: Icyl[prev], Far[prev0], Far[prev1], Icyl[corner]
+                os << "            ("
+                   << vIdx(topIcyl, icyl_idx_prev) << " "
+                   << vIdx(topFar,  far_idx_prev0) << " "
+                   << vIdx(topFar,  far_idx_prev1) << " "
+                   << vIdx(topIcyl, icyl_idx_corn) << ") // Top Outer Edge " << i << ".1" << endl;
+
+                // Top Face Block 2 (Corner) CCW: Icyl[corner], Far[prev1], Far[corner], Far[next1]
+                os << "            ("
+                   << vIdx(topIcyl, icyl_idx_corn) << " "
+                   << vIdx(topFar,  far_idx_prev1) << " "
+                   << vIdx(topFar,  far_idx_corn)  << " "
+                   << vIdx(topFar,  far_idx_next1) << ") // Top Outer Corner " << i << endl;
+
+                // Top Face Block 3 (Next Edge) CCW: Icyl[corner], Far[next1], Far[next0], Icyl[next]
+                os << "            ("
+                   << vIdx(topIcyl, icyl_idx_corn) << " "
+                   << vIdx(topFar,  far_idx_next1) << " "
+                   << vIdx(topFar,  far_idx_next0) << " "
+                   << vIdx(topIcyl, icyl_idx_next) << ") // Top Outer Edge " << i << ".2" << endl;
+            }
+            
+        } // End else (indices valid)
+
+        os << "        );" << endl;
+        os << "    }" << endl << endl; // End top patch
+
+        // --- Vertical Interface Patches (for mergePatchPairs) ---
+        for (label layer = 1; layer < $n_vert_layers; ++layer) // Loop through interfaces L1/L2, L2/L3, ... L(N-1)/LN
+        {
+            label L = layer;       // Current layer index (Layer below interface)
+            label Lp1 = layer + 1; // Layer above interface
+
+            os << "        // --- Interface between Layer " << L << " and Layer " << Lp1 << " ---" << endl;
+
+            // --- Define top_layer{L} patch ---
+            os << "    top_layer" << L << endl;
+            os << "    {" << endl;
+            os << "        type patch;" << endl;
+            os << "        faces" << endl;
+            os << "        (" << endl;
+
+            // Get Vertex Start Indices for the TOP of Layer L
+            label topCenter = L_center_Start[L];
+            label topOct    = L_oct_Start[L];
+            label topInr    = L_inr_Start[L];
+            label topInrDup    = L_inrDup_Start[L];
+            label topIcyl   = L_icyl_Start[L];
+            label topFar    = L_far_Start[L];
+
+            // Check indices validity
+             if (topCenter < 0 || topOct < 0 || topInr < 0 || topIcyl < 0 || topFar < 0) {
+                  Info << "Error generating top_layer" << L << ": Vertex indices not found." << endl;
+             } else {
+                 // Add Top Faces of Center Blocks (Layer L)
+                 for (int q = 0; q < 4; ++q) {
+                     int oct_idx0 = (q*2+0)%8; int oct_idx1 = (q*2+1)%8; int oct_idx2 = (q*2+2)%8;
+                     os << "            (" << topCenter << " " << vIdx(topOct, oct_idx0) << " " << vIdx(topOct, oct_idx1) << " " << vIdx(topOct, oct_idx2) << ") // Top L" << L << " Ctr Quad " << q << endl;
+                 }
+                 // Add Top Faces of Inner Blocks (Layer L)
+                 for (int i = 0; i < 8; ++i) {
+                     int i_plus_1 = (i+1)%8;
+                     os << "            (" << vIdx(topOct, i) << " " << vIdx(topOct, i_plus_1) << " " << vIdx(topInr, i_plus_1) << " " << vIdx(topInr, i) << ") // Top L" << L << " Inner Seg " << i << endl;
+                 }
+                 // Add Top Faces of Radial Interface Blocks (Layer L)
+                 for (int i = 0; i < 8; ++i) {
+                     int i_plus_1 = (i+1)%8;
+                     os << "            (" << vIdx(topInrDup, i) << " " << vIdx(topInrDup, i_plus_1) << " " << vIdx(topIcyl, i_plus_1) << " " << vIdx(topIcyl, i) << ") // Top L" << L << " Interface Seg " << i << endl;
+                 }
+                 // Add Top Faces of Outer Blocks (Layer L)
+                 for (int i = 0; i < 4; ++i) {
+                     int icyl_idx_prev = (2*i+0)%8; int icyl_idx_corn = (2*i+1)%8; int icyl_idx_next = (2*i+2)%8;
+                     int far_idx_prev0 = (4*i+0)%16; int far_idx_prev1 = (4*i+1)%16; int far_idx_corn = (4*i+2)%16;
+                     int far_idx_next1 = (4*i+3)%16; int far_idx_next0 = (4*i+4)%16;
+                     // Top Face Block 1 (Prev Edge)
+                     os << "            (" << vIdx(topIcyl, icyl_idx_prev) << " " << vIdx(topFar, far_idx_prev0) << " " << vIdx(topFar, far_idx_prev1) << " " << vIdx(topIcyl, icyl_idx_corn) << ") // Top L" << L << " Outer Edge " << i << ".1" << endl;
+                     // Top Face Block 2 (Corner)
+                     os << "            (" << vIdx(topIcyl, icyl_idx_corn) << " " << vIdx(topFar, far_idx_prev1) << " " << vIdx(topFar, far_idx_corn)  << " " << vIdx(topFar, far_idx_next1) << ") // Top L" << L << " Outer Corner " << i << endl;
+                     // Top Face Block 3 (Next Edge)
+                     os << "            (" << vIdx(topIcyl, icyl_idx_corn) << " " << vIdx(topFar, far_idx_next1) << " " << vIdx(topFar, far_idx_next0) << " " << vIdx(topIcyl, icyl_idx_next) << ") // Top L" << L << " Outer Edge " << i << ".2" << endl;
+                 }
+             } // end valid index check
+
+            os << "        );" << endl;
+            os << "    }" << endl << endl; // End top_layer{L} patch
+
+            // --- Define bottom_layer{L+1} patch ---
+            os << "    bottom_layer" << Lp1 << endl;
+            os << "    {" << endl;
+            os << "        type patch;" << endl;
+            os << "        faces" << endl;
+            os << "        (" << endl;
+
+            // Get Vertex Start Indices for the BOTTOM of Layer L+1
+            label btmCenter = L_bottom_center_Start[Lp1];
+            label btmOct    = L_bottom_oct_Start[Lp1];
+            label btmInr    = L_bottom_inr_Start[Lp1];
+            label btmInrDup = L_bottom_inrDup_Start[Lp1]; // Not needed for patch face definitions
+            label btmIcyl   = L_bottom_icyl_Start[Lp1];
+            label btmFar    = L_bottom_far_Start[Lp1];
+
+            // Check indices validity
+            if (btmCenter < 0 || btmOct < 0 || btmInr < 0 || btmIcyl < 0 || btmFar < 0) {
+                 Info << "Error generating bottom_layer" << Lp1 << ": Vertex indices not found." << endl;
+            } else {
+                 // Add Bottom Faces of Center Blocks (Layer L+1)
+                 for (int q = 0; q < 4; ++q) {
+                     int oct_idx0 = (q*2+0)%8; int oct_idx1 = (q*2+1)%8; int oct_idx2 = (q*2+2)%8;
+                     os << "            (" << btmCenter << " " << vIdx(btmOct, oct_idx0) << " " << vIdx(btmOct, oct_idx1) << " " << vIdx(btmOct, oct_idx2) << ") // Bottom L" << Lp1 << " Ctr Quad " << q << endl;
+                 }
+                 // Add Bottom Faces of Inner Blocks (Layer L+1)
+                 for (int i = 0; i < 8; ++i) {
+                     int i_plus_1 = (i+1)%8;
+                     os << "            (" << vIdx(btmOct, i) << " " << vIdx(btmOct, i_plus_1) << " " << vIdx(btmInr, i_plus_1) << " " << vIdx(btmInr, i) << ") // Bottom L" << Lp1 << " Inner Seg " << i << endl;
+                 }
+                 // Add Bottom Faces of Radial Interface Blocks (Layer L+1)
+                 for (int i = 0; i < 8; ++i) {
+                     int i_plus_1 = (i+1)%8;
+                     os << "            (" << vIdx(btmInrDup, i) << " " << vIdx(btmInrDup, i_plus_1) << " " << vIdx(btmIcyl, i_plus_1) << " " << vIdx(btmIcyl, i) << ") // Bottom L" << Lp1 << " Interface Seg " << i << endl;
+                 }
+                 // Add Bottom Faces of Outer Blocks (Layer L+1)
+                 for (int i = 0; i < 4; ++i) {
+                     int icyl_idx_prev = (2*i+0)%8; int icyl_idx_corn = (2*i+1)%8; int icyl_idx_next = (2*i+2)%8;
+                     int far_idx_prev0 = (4*i+0)%16; int far_idx_prev1 = (4*i+1)%16; int far_idx_corn = (4*i+2)%16;
+                     int far_idx_next1 = (4*i+3)%16; int far_idx_next0 = (4*i+4)%16;
+                     // Bottom Face Block 1 (Prev Edge)
+                     os << "            (" << vIdx(btmIcyl, icyl_idx_prev) << " " << vIdx(btmFar, far_idx_prev0) << " " << vIdx(btmFar, far_idx_prev1) << " " << vIdx(btmIcyl, icyl_idx_corn) << ") // Bottom L" << Lp1 << " Outer Edge " << i << ".1" << endl;
+                     // Bottom Face Block 2 (Corner)
+                     os << "            (" << vIdx(btmIcyl, icyl_idx_corn) << " " << vIdx(btmFar, far_idx_prev1) << " " << vIdx(btmFar, far_idx_corn)  << " " << vIdx(btmFar, far_idx_next1) << ") // Bottom L" << Lp1 << " Outer Corner " << i << endl;
+                     // Bottom Face Block 3 (Next Edge)
+                     os << "            (" << vIdx(btmIcyl, icyl_idx_corn) << " " << vIdx(btmFar, far_idx_next1) << " " << vIdx(btmFar, far_idx_next0) << " " << vIdx(btmIcyl, icyl_idx_next) << ") // Bottom L" << Lp1 << " Outer Edge " << i << ".2" << endl;
+                 }
+            } // end valid index check
+
+            os << "        );" << endl;
+            os << "    }" << endl << endl; // End bottom_layer{L+1} patch
+
+        } // End loop through interfaces
+
+        // --- Radial Interface Patches (Within Each Layer) ---
+        for (label layer = 1; layer <= $n_vert_layers; ++layer)
+        {
+            os << "        // --- Radial Interface Patches for Layer " << layer << " ---" << endl;
+
+            // Get Vertex Start Indices for the BOTTOM and TOP of the current layer 'layer'
+            label listIdxBottom = layer;
+            label listIdxTop    = layer;
+
+            label btmInr    = L_bottom_inr_Start[listIdxBottom];
+            label btmInrDup = L_bottom_inrDup_Start[listIdxBottom];
+            label topInr    = L_inr_Start[listIdxTop];
+            label topInrDup = L_inrDup_Start[listIdxTop];
+
+            // Check if indices are valid
+            if (btmInr < 0 || btmInrDup < 0 || topInr < 0 || topInrDup < 0) {
+                 Info << "Error generating radial interface patches for layer " << layer
+                                        << ": Vertex indices not found." << endl;
+                 continue; // Skip to next layer if indices are bad
+            }
+
+            // --- Define interface_Inner_L{layer} patch ---
+            // Outer vertical faces of the Inner Blocks (Oct->Inr) for this layer
+            os << "    interface_Inner_L" << layer << endl;
+            os << "    {" << endl;
+            os << "        type patch;"<< endl;
+            os << "        faces" << endl;
+            os << "        (" << endl;
+            for (int i = 0; i < 8; ++i)
+            {
+                 int i_plus_1 = (i + 1) % 8;
+                 // Face vertices CCW viewed from outside: BottomLeft, TopLeft, TopRight, BottomRight
+                 // Corresponds to Inr[i]@Bottom, Inr[i]@Top, Inr[i+1]@Top, Inr[i+1]@Bottom
+                 label v0 = vIdx(btmInr, i);
+                 label v1 = vIdx(topInr, i); // Top Left corresponds to Bottom Left
+                 label v2 = vIdx(topInr, i_plus_1); // Top Right corresponds to Bottom Right
+                 label v3 = vIdx(btmInr, i_plus_1); // Bottom Right
+
+                 os << "            (" << v0 << " " << v1 << " " << v2 << " " << v3 << ") // Inner L" << layer << " Face " << i << endl;
+            }
+            os << "        );" << endl;
+            os << "    }" << endl << endl; // End interface_Inner_L{layer}
+
+            // --- Define interface_Outer_L{layer} patch ---
+            // Inner vertical faces of the Radial Interface Blocks (Inr->Icyl) for this layer
+            os << "    interface_Outer_L" << layer << endl;
+            os << "    {" << endl;
+            os << "        type patch;"<< endl;
+            os << "        faces" << endl;
+            os << "        (" << endl;
+            for (int i = 0; i < 8; ++i)
+            {
+                 int i_plus_1 = (i + 1) % 8;
+                 // Face vertices CCW viewed from outside THIS block (i.e., from inside the cylinder)
+                 // Order: BottomLeft, BottomRight, TopRight, TopLeft
+                 // Corresponds to InrDup[i]@Bottom, InrDup[i+1]@Bottom, InrDup[i+1]@Top, InrDup[i]@Top
+                 label v0 = vIdx(btmInrDup, i);
+                 label v1 = vIdx(btmInrDup, i_plus_1); // Bottom Right
+                 label v2 = vIdx(topInrDup, i_plus_1); // Top Right
+                 label v3 = vIdx(topInrDup, i);        // Top Left
+
+                 os << "            (" << v0 << " " << v1 << " " << v2 << " " << v3 << ") // Outer L" << layer << " Face " << i << endl;
+            }
+            os << "        );" << endl;
+            os << "    }" << endl << endl; // End interface_Outer_L{layer}
+
+        } // End layer loop for radial interfaces
+
+        os << ");" << endl;
+
+        // --- Merge Patch Pairs Definition ---
+        os << "mergePatchPairs" << endl;
+        os << "(" << endl;
+
+        // 1. Vertical Layer Interface Merges
+        os << "    // Vertical layer merges" << endl;
+        for (label layer = 1; layer < $n_vert_layers; ++layer) // Loop through interfaces L1/L2, L2/L3, ..., L(N-1)/LN
+        {
+            label L = layer;
+            label Lp1 = layer + 1;
+            os << "    (top_layer" << L << " bottom_layer" << Lp1 << ")" << endl;
+        }
+
+        // 2. Radial Interface Merges (Within each layer)
+        os << "    // Radial interface merges within each layer" << endl;
+        for (label layer = 1; layer <= $n_vert_layers; ++layer) // Loop through all layers L1, L2, ..., LN
+        {
+            os << "    (interface_Inner_L" << layer << " interface_Outer_L" << layer << ")" << endl;
+        }
+
+        os << ");" << endl; // End mergePatchPairs section
+
+
+    #}; // End code calculation
+}; // End codeStream
+
+// ************************************************************************* //

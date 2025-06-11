@@ -746,6 +746,9 @@ const scalar dist_rel2 = topoDict.lookupOrDefault<scalar>("dist_rel2", 0.2);
 const scalar distC1 = topoDict.lookupOrDefault<scalar>("distC1", 0.0);
 const scalar distC2 = topoDict.lookupOrDefault<scalar>("distC2", 0.0);
 
+const scalar noDeformCoeff = topoDict.lookupOrDefault<scalar>("noDeformCoeff", 0.5);
+
+
 // Read the switch to save the cropped topography
 const Switch saveCrop = topoDict.lookupOrDefault<Switch>("saveCrop", false);
 
@@ -923,7 +926,9 @@ scalar Ldef(0.5*std::sqrt( sqr(xMax-xMin) + sqr(yMax-yMin) ));
 
 Info << "Ldef = " << Ldef << endl;
  
-scalar noDeformLevel(0.5*Ldef);
+scalar noDeformLevel(noDeformCoeff*Ldef);
+
+Info << "noDeformCoeff = " << noDeformCoeff << endl << endl;
 Info << "noDeformLevel = " << noDeformLevel << endl << endl;
     
 scalar z2Rel(0.0);

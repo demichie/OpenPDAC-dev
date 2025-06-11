@@ -1,0 +1,27 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+cloudInfo1
+{
+    type            cloudDetails;
+    libs            ("libOpenPDACFunctionObjects.so");
+    enabled         true;
+    writeControl    adjustableRunTime;
+    writeInterval   0.1;
+
+    clouds          (cloud);
+}
+
+// ************************************************************************* //

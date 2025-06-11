@@ -1,0 +1,100 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  dev
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+ddtSchemes
+{
+    default     Euler;
+}
+
+gradSchemes
+{
+    // default     Gauss linear;
+    default         cellLimited<cubic> 1.5 Gauss linear 1;              //Cubic gradient limiter
+    
+}
+
+divSchemes
+{
+    default                         none;
+
+    // "div\(phi,alpha.*\)"            Gauss vanLeer;
+    // "div\(phir,alpha.*\)"           Gauss vanLeer;
+    "div\(phi,alpha.*\)"            Gauss limitedLinear 1;;
+    "div\(phir,alpha.*\)"           Gauss limitedLinear 1;;
+    // "div\(phi,alpha.*\)"            Gauss limitedLinear01 1;;
+    // "div\(phir,alpha.*\)"           Gauss limitedLinear01 1;;
+
+    "div\(alphaRhoPhi.*,Yi\)"             Gauss limitedLinear 1;
+    // "div\(alphaRhoPhi.*,Yi\)"             Gauss limitedLinear01 1;;
+
+
+    // "div\(alphaRhoPhi.*,U.*\)"      Gauss limitedLinearV 1;
+    // "div\(phi.*,U.*\)"              Gauss limitedLinearV 1;
+
+    "div\(alphaRhoPhi.*,U.*\)"      Gauss linearUpwind default;
+    "div\(phi.*,U.*\)"              Gauss linearUpwind default;
+
+    "div\(alphaPhi.*,p\)"           Gauss linearUpwind default; 
+
+    // "div\(alphaRhoPhi.*,(h|e).*\)"  Gauss limitedLinear 1;
+    "div\(alphaRhoPhi.*,(h|e).*\)"  Gauss linearUpwind default;
+
+    // "div\(alphaRhoPhi.*,K.*\)"      Gauss limitedLinear 1;
+    "div\(alphaRhoPhi.*,K.*\)"      Gauss linearUpwind default;
+
+    // div(alphaRhoPhi,(p|rho)) Gauss limitedLinear 1;
+    div(alphaRhoPhi,(p|rho)) Gauss linearUpwind default;
+    
+    // div(alphaRhoPhi.particles,Theta.particles) Gauss limitedLinear 1;
+    div(alphaRhoPhi.particles,Theta.particles) Gauss linearUpwind default;
+
+    // "div\(alphaRhoPhi.*,(k|epsilon).*\)"  Gauss limitedLinear 1;
+    "div\(alphaRhoPhi.*,(k|epsilon).*\)"  Gauss linearUpwind default;
+
+    // div((((alpha.gas*thermo:rho.gas)*nuEff.gas)*dev2(T(grad(U.gas))))) Gauss linear;
+    div((((alpha.gas*thermo:rho.gas)*nuEff.gas)*dev2(T(grad(U.gas))))) Gauss linear 1;
+
+    "div(phiUh,ph)"                 Gauss linearUpwind grad(rho);
+
+    div(phiUh,Th)      Gauss upwind;
+    
+    // "div\(\(\(\(alpha.*\*thermo:rho.*\)*nuEff.*\)\*dev2\(T\(grad\(U.*\)\)\)\)\)" Gauss linear;
+    "div\(\(\(\(alpha.*\*thermo:rho.*\)*nuEff.*\)\*dev2\(T\(grad\(U.*\)\)\)\)\)" Gauss linear 1;
+
+    // divDevTau(U.particles)          Gauss linear;
+    divDevTau(U.particles)          Gauss linear 1;
+
+}
+
+laplacianSchemes
+{
+    // default     Gauss linear uncorrected;
+    default     Gauss linear limited corrected 0.5;
+}
+
+interpolationSchemes
+{
+    default     linear;
+}
+
+snGradSchemes
+{
+    // default     uncorrected;
+    default     limited 0.5;
+}
+
+// ************************************************************************* //

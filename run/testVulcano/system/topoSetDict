@@ -1,0 +1,60 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  9
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include "blockMeshDict"
+
+actions
+(
+    {
+        action  new;
+        type    cellSet;
+        name    crater;
+        source  cylinderToCell;
+        point1  (0 0 #calc "-$h_crater");
+        point2  (0 0 0);
+        radius  $r_crater_top;
+    }
+    {
+        name    crater;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        sourceInfo
+        {
+           set  crater;
+        }
+    }  
+    {
+        action  new;
+        type    cellSet;
+        name    conduit;
+        source  cylinderToCell;
+        point1  (0 0 #calc "-$h_crater");
+        point2  (0 0 #calc "-$h_crater-$h_conduit");
+        radius  $r_crater_top;
+    }
+    {
+        name    conduit;
+        type    cellZoneSet;
+        action  new;
+        source  setToCellZone;
+        sourceInfo
+        {
+           set  conduit;
+        }
+    } 
+);
+
+// ************************************************************************* //
