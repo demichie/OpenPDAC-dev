@@ -149,7 +149,7 @@ PIMPLE
         "(h|e).*"    1e-6;
     }  
     
-    faceMomentum        yes;
+    faceMomentum        no;
     hydrostaticInitialisation false;
     nHydrostaticCorrectors 20;
 }

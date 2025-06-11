@@ -1,7 +1,4 @@
-# module load openFOAM-12
-# source $FOAM_BASHRC
-
-rm -rf constant/triSurface/*
+rm -rf constant/triSurface/*.stl
 foamCleanCase
 
 cd preprocessing
@@ -13,16 +10,16 @@ surfaceCheck constant/triSurface/surface_conduit_closed.stl
 surfaceCheck constant/triSurface/surface_total_closed.stl
 
 cp ./system/controlDict.init ./system/controlDict
-blockMesh 
-checkMesh -allTopology -allGeometry
+blockMesh > log.blockMesh
+checkMesh -allTopology -allGeometry > log.checkMesh0
 
-snappyHexMesh -overwrite
-extrudeMesh
-changeDictionary
+snappyHexMesh -overwrite > log.snappyHexMesh
+extrudeMesh > log.extrudeMesh
+changeDictionary > log.changeDictionary
 
-checkMesh -allTopology -allGeometry
+checkMesh -allTopology -allGeometry > log.checkMesh1
 
-topoSet -dict topoSetDict-conduit
+topoSet -dict topoSetDict-conduit > log.topoSet
 
 cp ./system/controlDict.init ./system/controlDict
 cp ./system/fvSolution.init ./system/fvSolution
@@ -31,34 +28,13 @@ cp ./constant/cloudProperties.init ./constant/cloudProperties
 rm -rf 0
 cp -r org.0 0
 
-#FOR PARALLEL RUN:
-#sbatch MPIJob_init.script
-#squeue
-
-#FOR SCALAR RUN:
-foamRun
-setFields
+foamRun > log.foamRun0
+setFields > log.setFields
 
 cp ./system/controlDict.run system/controlDict
 cp ./system/fvSolution.run system/fvSolution
 cp ./constant/cloudProperties.run ./constant/cloudProperties
 
-#FOR PARALLEL RUN:
-#sbatch MPIJob_run.script
-#squeue
+foamRun > log.foamRun1 &
 
-#FOR PARALLEL RUN ON PC:
-# decomposePar
-# mpirun -np xx foamRun -parallel
-# reconstructPar -newTimes -fields '(p U.gas alpha.particles)' -lagrangianFields '(U d)'
-# foamToVTK -fields '()' -noInternal -noFaceZones -excludePatches '(atm top terrain)'
-
-#FOR SCALAR RUN:
-foamRun
-
-
-python plotBallistics.py
-
-rm -rf VTK
-foamToVTK -fields "(alpha.particles)"
 
