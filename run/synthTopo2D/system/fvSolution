@@ -45,7 +45,7 @@ solvers
         mergeLevels     1;
         tolerance       1e-8;
         relTol          0;
-        minIter         2;
+        minIter         1;
     }
 
     p_rghFinal
