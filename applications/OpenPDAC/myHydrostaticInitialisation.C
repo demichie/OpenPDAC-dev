@@ -48,7 +48,7 @@ void Foam::hydrostaticInitialisation
     const dictionary& dict
 )
 {
-    dimensionedScalar pRef("pRef",dimensionSet(1, -1, -2, 0, 0),scalar(101325.0));
+    dimensionedScalar pBdry("pBdry",dimensionSet(1, -1, -2, 0, 0),scalar(0.0));
 
     if (dict.lookupOrDefault<bool>("hydrostaticInitialisation", false))
     {
@@ -57,26 +57,20 @@ void Foam::hydrostaticInitialisation
         volScalarField rho("rho", fluid.rho());
         volVectorField U("U", fluid.U());
 
-        dimensionedScalar xMin = min(mesh.Cf().component(0));
-        dimensionedScalar xMax = max(mesh.Cf().component(0));
-        dimensionedScalar yMin = min(mesh.Cf().component(1));
-        dimensionedScalar yMax = max(mesh.Cf().component(1));
-        dimensionedScalar zMin = min(mesh.Cf().component(2));
-        dimensionedScalar zMax = max(mesh.Cf().component(2));
-     
+        dimensionedScalar hBdry = 0.0*max(mesh.Cf().component(2));
+ 
+        word local_patchName = ""; // Use the name (word), not the label!
+                
         if (!mesh.time().restart())
         {
 
-            volScalarField ph(p);
+       	    volScalarField ph(p);
 
 	    label nFixValPatches = 0;
-	    label bdryPref = 0;
-
+	    
             forAll(ph.boundaryField(), bdryID)     
    	    {    		
-	        Info << "magSfBdry" << mesh.Sf().boundaryField()[bdryID][0] << endl;
-   	        //if ( ( mag(mesh.Sf().boundaryField()[bdryID][0]^g).value() == 0.0 ) 
-   	        if ( ( mag(mesh.Sf().boundaryField()[bdryID][0]^g).value() <= 
+	        if ( ( mag(mesh.Sf().boundaryField()[bdryID][0]^g).value() <= 
    	               1.0e-8*mag(mesh.Sf().boundaryField()[bdryID][0])*mag(g).value() ) 
    			    	&& ( ph.boundaryField()[bdryID].type() == "fixedValue" ) )
        	        {
@@ -85,39 +79,63 @@ void Foam::hydrostaticInitialisation
     			    
 		    if ( min(ph_p) == max(ph_p) )
 		    {
-		        pRef.value() = min(ph_p);
-		        bdryPref = bdryID;
-		        Info << "pRef " << pRef.value() << endl;
-		        if ( g.component(0).value() != 0.0 )
-		        {
-		            hRef = xMax;
-		        }
-		        else if ( g.component(1).value() != 0.0 )
-		        {
-		            hRef = yMax;
-		        }
-		        else
-		        {
-		            hRef = zMax;
-		        }        
+		        local_patchName = ph.boundaryField()[bdryID].patch().name();
+                        pBdry.value() = min(ph_p);
+		        Info << "pBdry " << pBdry.value() << endl;
 		        
-		             
-		    }					
+		        const vector gDir = g.value()/mag(g.value());
+                        const fvPatch& patch = ph.boundaryField()[bdryID].patch();
+                        const vectorField& patchFaceCentres = patch.Cf();
+                        const scalarField& patchFaceAreas = patch.magSf();
 
+                        vector patchCenterSum(vector::zero);
+                        scalar patchAreaSum(0.0);
+                        
+                        forAll(patchFaceCentres, i)
+                        {
+                            patchCenterSum += patchFaceCentres[i] * patchFaceAreas[i];
+                            patchAreaSum += patchFaceAreas[i];
+                        }
+                        
+                        if (patchAreaSum < SMALL)
+                        {
+                            FatalErrorInFunction
+                            << "Reference patch " << patch.name() << " has zero area."
+                            << exit(FatalError);
+                        }                        
+
+                        const vector patchCenter = patchCenterSum / patchAreaSum;
+
+                        hBdry.value() = -gDir & patchCenter;
+                        
+                        Sout << "Reference height hRef set to " << hRef.value() 
+                             << " m (based on reference patch center)." << endl;
+		              		        		             
+		    }					
    	        }
 	    }
 
-            if (nFixValPatches == 0)
+            reduce(local_patchName, maxOp<word>());
+            const word& patchName = local_patchName;
+            
+            Info << "Reference patch " << patchName << endl;
+            
+            if (patchName.empty())
             {
                 FatalErrorInFunction
-                    << "Could not find a suitable reference patch for hydrostatic initialisation." << nl
-                    << "Please ensure at least one boundary patch for 'p' meets the criteria:" << nl
-                    << "  - Type is 'fixedValue' with a uniform value." << nl
-                    << "  - The patch is 'horizontal' (normal vector parallel to gravity)."
+                    << "Could not find a suitable reference patch for hydrostatic initialisation (checked across all processors)."
                     << exit(FatalError);
-            }
+            }            
 
-            ph = pRef;
+            reduce(pBdry, maxOp<dimensionedScalar>());
+            reduce(hBdry, maxOp<dimensionedScalar>());
+
+            // Initialize with constant value
+            ph = pBdry;
+                                    
+            Info << "Proc" << Pstream::myProcNo() << " hBdry " << hBdry.value() 
+                 << " pBdry " << pBdry.value() << endl;
+            
             
             for (label i=0; i<5; i++)
             {
@@ -125,7 +143,7 @@ void Foam::hydrostaticInitialisation
                 fluid.correctThermo();
                 rho = fluid.rho();
 
-                ph = pRef- ( ( g & mesh.C() ) - (-mag(g)*hRef) ) * 0.5* ( min(rho)+ max(rho));
+                ph = pBdry + ( ( g & mesh.C() ) - (-mag(g)*hBdry) ) * 0.5* ( min(rho)+ max(rho));
                 Info<< "min ph " << min(ph).value() << 
                        " max ph " << max(ph).value() << endl;
             }
@@ -140,18 +158,20 @@ void Foam::hydrostaticInitialisation
             
             // we initialize the field ph_rgh with the computed pressure and density
             ph_rgh = ph - rho*gh;
-       
+
             Info << "Updating p_rgh boundary condition on patch " 
-                 << mesh.boundaryMesh()[bdryPref].name() 
+                 << patchName 
                  << " to be consistent with the reference pressure." << endl;
-        
+
+            label patchID = mesh.boundaryMesh().findIndex(patchName);
+       
             // we change the fixed value b.c. of ph_rgh at the top face, in order to be 
             // consistent with the values of ph, rho and gh
-            forAll(ph_rgh.boundaryField()[bdryPref], faceI)
+            forAll(ph_rgh.boundaryField()[patchID], faceI)
             {
-                ph_rgh.boundaryFieldRef()[bdryPref][faceI] = ph.boundaryField()[bdryPref][faceI] 
-                    - rho.boundaryField()[bdryPref][faceI] * gh.boundaryField()[bdryPref][faceI];
-            }           
+                ph_rgh.boundaryFieldRef()[patchID][faceI] = ph.boundaryField()[patchID][faceI] 
+                    - rho.boundaryField()[patchID][faceI] * gh.boundaryField()[patchID][faceI];
+            }
             
             surfaceScalarField rhof("rhof", fvc::interpolate(rho));
             surfaceScalarField phig
@@ -166,11 +186,17 @@ void Foam::hydrostaticInitialisation
             fluid.correctThermo();
             rho = fluid.rho();
 
-            const fvPatchScalarField& ph_rgh_top = ph_rgh.boundaryField()[bdryPref];
+            const fvPatchScalarField& ph_rgh_top = ph_rgh.boundaryField()[patchID];
 
-            Info<< "min ph_rgh top " << min(ph_rgh_top) <<
-   	           "max ph_rgh top " << max(ph_rgh_top) << endl;
-            
+
+            scalar min_ph_rgh_top(min(ph_rgh_top));            
+            reduce(min_ph_rgh_top, minOp<scalar>());
+
+            scalar max_ph_rgh_top(max(ph_rgh_top));            
+            reduce(max_ph_rgh_top, maxOp<scalar>());
+
+            Info<< "min ph_rgh top " << min_ph_rgh_top <<
+   	           " max ph_rgh top " << max_ph_rgh_top << endl;
             
             p = ph_rgh + rho*gh;
             fluid.correctThermo();
@@ -209,9 +235,9 @@ void Foam::hydrostaticInitialisation
                     << (max(ph_rgh) - min(ph_rgh)).value() << endl;
 
                 Info<< "min p " << min(p).value() <<
-                       "max p " << max(p).value() << endl;
+                       " max p " << max(p).value() << endl;
                 Info<< "min rho " << min(rho).value() <<
-                       "max rho " << max(rho).value() << endl;
+                       " max rho " << max(rho).value() << endl;
 
 
             }
