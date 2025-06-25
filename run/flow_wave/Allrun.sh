@@ -18,7 +18,7 @@ snappyHexMesh -overwrite > log.snappyHexMesh
 echo "snappyHexMesh completed"
 
 extrudeMesh > log.extrudeMesh
-echo "snappyHexMesh completed"
+echo "extrudeMesh completed"
 
 checkMesh -allTopology -allGeometry > log.checkMesh1
 echo "checkMesh1 completed"
