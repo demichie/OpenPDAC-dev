@@ -66,15 +66,12 @@ void Foam::hydrostaticInitialisation
 
        	    volScalarField ph(p);
 
-	    label nFixValPatches = 0;
-	    
             forAll(ph.boundaryField(), bdryID)     
    	    {    		
 	        if ( ( mag(mesh.Sf().boundaryField()[bdryID][0]^g).value() <= 
    	               1.0e-8*mag(mesh.Sf().boundaryField()[bdryID][0])*mag(g).value() ) 
    			    	&& ( ph.boundaryField()[bdryID].type() == "fixedValue" ) )
        	        {
-   	            nFixValPatches +=1;
    	            const fvPatchScalarField& ph_p = ph.boundaryField()[bdryID];
     			    
 		    if ( min(ph_p) == max(ph_p) )
@@ -83,33 +80,20 @@ void Foam::hydrostaticInitialisation
                         pBdry.value() = min(ph_p);
 		        Info << "pBdry " << pBdry.value() << endl;
 		        
-		        const vector gDir = g.value()/mag(g.value());
-                        const fvPatch& patch = ph.boundaryField()[bdryID].patch();
-                        const vectorField& patchFaceCentres = patch.Cf();
-                        const scalarField& patchFaceAreas = patch.magSf();
-
-                        vector patchCenterSum(vector::zero);
-                        scalar patchAreaSum(0.0);
-                        
-                        forAll(patchFaceCentres, i)
+                        // Use simple max extent logic since gravity is axis-aligned
+                        if (g.component(0).value() != 0.0)
                         {
-                            patchCenterSum += patchFaceCentres[i] * patchFaceAreas[i];
-                            patchAreaSum += patchFaceAreas[i];
+                            hBdry = max(mesh.C().component(0));
                         }
-                        
-                        if (patchAreaSum < SMALL)
+                        else if (g.component(1).value() != 0.0)
                         {
-                            FatalErrorInFunction
-                            << "Reference patch " << patch.name() << " has zero area."
-                            << exit(FatalError);
-                        }                        
-
-                        const vector patchCenter = patchCenterSum / patchAreaSum;
-
-                        hBdry.value() = -gDir & patchCenter;
-                        
-                        Sout << "Reference height hRef set to " << hRef.value() 
-                             << " m (based on reference patch center)." << endl;
+                            hBdry = max(mesh.C().component(1));
+                        }
+                        else
+                        {
+                            hBdry = max(mesh.C().component(2));
+                        }
+                        break; 
 		              		        		             
 		    }					
    	        }
@@ -123,7 +107,7 @@ void Foam::hydrostaticInitialisation
             if (patchName.empty())
             {
                 FatalErrorInFunction
-                    << "Could not find a suitable reference patch for hydrostatic initialisation (checked across all processors)."
+                    << "Could not find a suitable reference patch for hydrostatic initialisation."
                     << exit(FatalError);
             }            
 
@@ -137,7 +121,7 @@ void Foam::hydrostaticInitialisation
                  << " pBdry " << pBdry.value() << endl;
             
             
-            for (label i=0; i<5; i++)
+            for (label i=0; i<10; i++)
             {
                 p = ph;
                 fluid.correctThermo();
@@ -167,10 +151,13 @@ void Foam::hydrostaticInitialisation
        
             // we change the fixed value b.c. of ph_rgh at the top face, in order to be 
             // consistent with the values of ph, rho and gh
-            forAll(ph_rgh.boundaryField()[patchID], faceI)
+            if (patchID != -1)
             {
-                ph_rgh.boundaryFieldRef()[patchID][faceI] = ph.boundaryField()[patchID][faceI] 
-                    - rho.boundaryField()[patchID][faceI] * gh.boundaryField()[patchID][faceI];
+                forAll(ph_rgh.boundaryField()[patchID], faceI)
+                {
+                    ph_rgh.boundaryFieldRef()[patchID][faceI] = ph.boundaryField()[patchID][faceI] 
+                        - rho.boundaryField()[patchID][faceI] * gh.boundaryField()[patchID][faceI];
+                }
             }
             
             surfaceScalarField rhof("rhof", fvc::interpolate(rho));
