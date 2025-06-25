@@ -42,8 +42,8 @@ boundaryField
     }
     top
     {
-        type               calculated;
-        value              $internalField;   
+        type               fixedValue;
+        value              uniform 100149.14;
     }
 
     frontAndBack

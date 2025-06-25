@@ -67,21 +67,7 @@ void Foam::hydrostaticInitialisation
         if (!mesh.time().restart())
         {
 
-            volScalarField& ph = regIOobject::store
-            (
-                new volScalarField
-                (
-                    IOobject
-                    (
-                        "ph",
-                        "0",
-                        mesh,
-                        IOobject::MUST_READ,
-                        IOobject::NO_WRITE
-                    ),
-               	    mesh
-                )
-       	    );
+            volScalarField ph(p);
 
 	    label nFixValPatches = 0;
 	    label bdryPref = 0;
@@ -121,6 +107,16 @@ void Foam::hydrostaticInitialisation
    	        }
 	    }
 
+            if (nFixValPatches == 0)
+            {
+                FatalErrorInFunction
+                    << "Could not find a suitable reference patch for hydrostatic initialisation." << nl
+                    << "Please ensure at least one boundary patch for 'p' meets the criteria:" << nl
+                    << "  - Type is 'fixedValue' with a uniform value." << nl
+                    << "  - The patch is 'horizontal' (normal vector parallel to gravity)."
+                    << exit(FatalError);
+            }
+
             ph = pRef;
             
             for (label i=0; i<5; i++)
@@ -145,14 +141,15 @@ void Foam::hydrostaticInitialisation
             // we initialize the field ph_rgh with the computed pressure and density
             ph_rgh = ph - rho*gh;
        
-            // Find the label of the patch that shall be changed
-            label patchID = mesh.boundaryMesh().findIndex("top");
+            Info << "Updating p_rgh boundary condition on patch " 
+                 << mesh.boundaryMesh()[bdryPref].name() 
+                 << " to be consistent with the reference pressure." << endl;
         
             // we change the fixed value b.c. of ph_rgh at the top face, in order to be 
             // consistent with the values of ph, rho and gh
-            forAll(ph_rgh.boundaryField()[patchID], faceI)
+            forAll(ph_rgh.boundaryField()[bdryPref], faceI)
             {
-                ph_rgh.boundaryFieldRef()[patchID][faceI] = ph.boundaryField()[bdryPref][faceI] 
+                ph_rgh.boundaryFieldRef()[bdryPref][faceI] = ph.boundaryField()[bdryPref][faceI] 
                     - rho.boundaryField()[bdryPref][faceI] * gh.boundaryField()[bdryPref][faceI];
             }           
             
@@ -169,7 +166,7 @@ void Foam::hydrostaticInitialisation
             fluid.correctThermo();
             rho = fluid.rho();
 
-            const fvPatchScalarField& ph_rgh_top = ph_rgh.boundaryField()[patchID];
+            const fvPatchScalarField& ph_rgh_top = ph_rgh.boundaryField()[bdryPref];
 
             Info<< "min ph_rgh top " << min(ph_rgh_top) <<
    	           "max ph_rgh top " << max(ph_rgh_top) << endl;

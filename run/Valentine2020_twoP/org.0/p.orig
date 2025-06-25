@@ -16,7 +16,7 @@ FoamFile
 
 dimensions          [1 -1 -2 0 0 0 0];
 
-internalField       uniform 57193.37;
+internalField       uniform 100149.14;
 
 boundaryField
 {
@@ -42,8 +42,8 @@ boundaryField
     }
     top
     {
-        type               calculated;
-        value              $internalField;   
+        type               fixedValue;
+        value              uniform 100149.14;
     }
 
     frontAndBack

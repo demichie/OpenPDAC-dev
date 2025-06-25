@@ -36,7 +36,6 @@ solution
         rho             cell;
         U               cellPoint;
         muMix           cell;
-        gradP           cell;
     }
 
     integrationSchemes
@@ -58,17 +57,74 @@ subModels
 {
     particleForces
     {
-        NonSphereDragVarPhi
-        {}
-        gravity;
-        PressureGradientP
-        {
-            P     p;
+        nonSphereDrag
+	{
+            phi    1.0;
         }
     }
-    
+
     injectionModels
     {
+        model3
+        {
+            type cellZoneInjection;
+            uniformParcelSize nParticle;
+            cellZone total; // Name of cellZone
+            SOI 0.0; // Start Of Injection
+            parcelBasisType fixed; // How are the number of particles calculated
+            nParticle 1;
+            numberDensity 1e-1; // numberDensity multiplied by cellZoneVolume gives the number of particles to be injected
+            duration 5e-5; //cellZoneInjection through this manner is a one time injection, i.e., all the particles will be injected at once
+            U0 (0 0 0); //initial velocity of the particles upon injection
+            sfericity 0.85;
+            sizeDistribution
+            {
+                //type uniform;
+                type fixedValue;
+                fixedValueDistribution
+                {
+                    value        1.0e-01;
+                }
+            }
+            densityDistribution
+            {
+                type        fixedValue;
+                fixedValueDistribution
+                {
+                    value        2300;
+                }
+            }    
+        }
+        model4
+        {
+            type cellZoneInjection;
+            uniformParcelSize nParticle;
+            cellZone total; // Name of cellZone
+            SOI 0.0; // Start Of Injection
+            parcelBasisType fixed; // How are the number of particles calculated
+            nParticle 1;
+            numberDensity 1e-1; // numberDensity multiplied by cellZoneVolume gives the number of particles to be injected
+            duration 5e-5; //cellZoneInjection through this manner is a one time injection, i.e., all the particles will be injected at once
+            U0 (0 0 0); //initial velocity of the particles upon injection
+            sfericity 0.85;
+            sizeDistribution
+            {
+                //type uniform;
+                type fixedValue;
+                fixedValueDistribution
+                {
+                    value        0.5e-01;
+                }
+            }
+            densityDistribution
+            {
+                type        fixedValue;
+                fixedValueDistribution
+                {
+                    value        2000;
+                }
+            }
+        }
     }
     
     dispersionModel none;
