@@ -175,7 +175,7 @@ Foam::ThermalPhaseModel<BasePhaseModel>::heEqn()
         // Add the appropriate pressure-work term
         if (he.name() == this->thermo_->phasePropertyName("e"))
         {
-            tEEqn.ref() -= filterPressureWork
+            tEEqn.ref() += filterPressureWork
             (        
                 this->fluidThermo().p() * 
                 ( fvc::ddt(alpha)
@@ -184,7 +184,7 @@ Foam::ThermalPhaseModel<BasePhaseModel>::heEqn()
                         fvc::absolute(phi,U),
                         alpha
                     )
-                )
+                - contErr/rho)
             );
         }
         else if (this->thermo_->dpdt())
