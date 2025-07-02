@@ -10,7 +10,7 @@ The module also implement an initialization of the hydrostatic pressure profile,
 
 Six test cases are provided:
 
-- a 3D explosion simulation with a synthetic topography;
+- a 3D explosion simulation;
 - a 2D explosion simulation on a flat topography;
 - an axisymmetric explosion simulation on a flat topography;
 - a 2D dilute flow over a wavy surface;
