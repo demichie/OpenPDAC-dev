@@ -1191,6 +1191,8 @@ void Foam::momentumTransferSystem::dragEnergy
     PtrList<volScalarField>& dragEnergyTransfers
 ) const
 {
+    Kds_.clear();             // Pulizia della cache interna
+
     const word& continuousPhaseName = fluid_.continuousPhaseName();
     labelList movingPhases(fluid_.phases().size(), -1);
     forAll(fluid_.movingPhases(), movingPhasei)
@@ -1208,8 +1210,6 @@ void Foam::momentumTransferSystem::dragEnergy
             fvc::reconstruct(fluid_.movingPhases()[movingPhasei].phi())
         );
     }
-
-    Kds_.clear();
 
     // Update the drag coefficients
     forAllConstIter
@@ -1247,9 +1247,6 @@ void Foam::momentumTransferSystem::dragEnergy
             }
         }
     }
-
-    dragEnergyTransfers.clear();
-
 
     forAllConstIter(KdTable, Kds_, KdIter)
     {
@@ -1295,6 +1292,10 @@ void Foam::momentumTransferSystem::dragDissipation
     PtrList<volScalarField>& dragDissipations
 ) const
 {
+    
+    Kds_.clear();             // Pulizia della cache interna
+
+    
     const word& continuousPhaseName = fluid_.continuousPhaseName();
     labelList movingPhases(fluid_.phases().size(), -1);
     forAll(fluid_.movingPhases(), movingPhasei)
@@ -1312,8 +1313,6 @@ void Foam::momentumTransferSystem::dragDissipation
             fvc::reconstruct(fluid_.movingPhases()[movingPhasei].phi())
         );
     }
-
-    Kds_.clear();
 
     // Update the drag coefficients
     forAllConstIter
@@ -1352,8 +1351,6 @@ void Foam::momentumTransferSystem::dragDissipation
         }
     }
 
-    dragDissipations.clear();
-
     // Main loop over the couple of phases with drag
     forAllConstIter(KdTable, Kds_, KdIter)
     {
@@ -1388,8 +1385,8 @@ void Foam::momentumTransferSystem::dragDissipation
                 }
                 else if (otherPhase.name() == continuousPhaseName && j != -1) // solid phase
                 {
-                    // no dissipation
-                    dragDissipation = 0.0;
+                    // no dissipation assigned to disperse phase when other is gas
+                    dragDissipation = 0.0 * K1 * magSqr(Urel);
                 }                
                 // Case 2: Solid-Solid interaction
                 else if (j != -1)
