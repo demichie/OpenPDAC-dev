@@ -57,6 +57,13 @@ void Foam::hydrostaticInitialisation
         volScalarField rho("rho", fluid.rho());
         volVectorField U("U", fluid.U());
 
+        dimensionedScalar xMin = min(mesh.Cf().component(0));
+        dimensionedScalar xMax = max(mesh.Cf().component(0));
+        dimensionedScalar yMin = min(mesh.Cf().component(1));
+        dimensionedScalar yMax = max(mesh.Cf().component(1));
+        dimensionedScalar zMin = min(mesh.Cf().component(2));
+        dimensionedScalar zMax = max(mesh.Cf().component(2));
+
         dimensionedScalar hBdry = 0.0*max(mesh.Cf().component(2));
  
         word local_patchName = ""; // Use the name (word), not the label!
@@ -78,49 +85,45 @@ void Foam::hydrostaticInitialisation
 		    {
 		        local_patchName = ph.boundaryField()[bdryID].patch().name();
                         pBdry.value() = min(ph_p);
-		        Info << "pBdry " << pBdry.value() << endl;
+		        Sout << "pBdry " << pBdry.value() << endl;
 		        
                         // Use simple max extent logic since gravity is axis-aligned
-                        if (g.component(0).value() != 0.0)
-                        {
-                            hBdry = max(mesh.C().component(0));
-                        }
-                        else if (g.component(1).value() != 0.0)
-                        {
-                            hBdry = max(mesh.C().component(1));
-                        }
-                        else
-                        {
-                            hBdry = max(mesh.C().component(2));
-                        }
-                        break; 
-		              		        		             
+		        if ( g.component(0).value() != 0.0 )
+		        {
+		            hBdry = xMax;
+		        }
+		        else if ( g.component(1).value() != 0.0 )
+		        {
+		            hBdry = yMax;
+		        }
+		        else
+		        {
+		            hBdry = zMax;
+		        }     		        		             
 		    }					
    	        }
 	    }
 
+            
             reduce(local_patchName, maxOp<word>());
             const word& patchName = local_patchName;
             
             Info << "Reference patch " << patchName << endl;
+            
             
             if (patchName.empty())
             {
                 FatalErrorInFunction
                     << "Could not find a suitable reference patch for hydrostatic initialisation."
                     << exit(FatalError);
-            }            
-
+            }  
+                      
             reduce(pBdry, maxOp<dimensionedScalar>());
             reduce(hBdry, maxOp<dimensionedScalar>());
 
             // Initialize with constant value
             ph = pBdry;
                                     
-            Info << "Proc" << Pstream::myProcNo() << " hBdry " << hBdry.value() 
-                 << " pBdry " << pBdry.value() << endl;
-            
-            
             for (label i=0; i<10; i++)
             {
                 p = ph;

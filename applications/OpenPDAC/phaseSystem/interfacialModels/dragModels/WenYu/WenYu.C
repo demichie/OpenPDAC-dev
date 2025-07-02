@@ -68,14 +68,15 @@ Foam::tmp<Foam::volScalarField> Foam::dragModels::WenYu::CdRe() const
 
     const volScalarField Res(alpha2*interface_.Re());
 
+    /*
     Info << "Re min, max = " << min(interface_.Re()).value()  << " " << max(interface_.Re()).value() << endl;
 
     Info << "nu min, max = " << min(interface_.continuous().fluidThermo().nu()).value()  << " " << max(interface_.continuous().fluidThermo().nu()).value() << endl;
 
     Info << "rho min, max = " << min(interface_.continuous().fluidThermo().rho()).value()  << " " << max(interface_.continuous().fluidThermo().rho()).value() << endl;
 
-
     Info << "Res min, max = " << min(Res).value()  << " " << max(Res).value() << endl;
+    */
 
     const volScalarField CdsRes
     (
