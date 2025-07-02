@@ -111,14 +111,22 @@ void Foam::solvers::OpenPDAC::energyPredictor()
           + fvModels().source(alpha, rho, phase.thermo().he())
         );
 
-        if (pimple.dict().lookupOrDefault<Switch>("totalEnergy", false) &&
-            pimple.dict().lookupOrDefault<Switch>("dragEnergyCorrection", false)
-           )
+        if (pimple.dict().lookupOrDefault<Switch>("dragEnergyCorrection", false))
         {
-            PtrList<volScalarField> dragEnergyTransfers(movingPhases.size());
-            momentumTransferSystem_.dragEnergy(dragEnergyTransfers);
-            EEqn -= dragEnergyTransfers[thermalPhasei];
-        }   
+            if (pimple.dict().lookupOrDefault<Switch>("totalEnergy", false))
+            {
+                PtrList<volScalarField> dragEnergyTransfers(movingPhases.size());
+                momentumTransferSystem_.dragEnergy(dragEnergyTransfers);
+                EEqn -= dragEnergyTransfers[thermalPhasei];
+            }
+            else
+            {
+                PtrList<volScalarField> dragDissipations(movingPhases.size());
+                momentumTransferSystem_.dragDissipation(dragDissipations);
+                EEqn -= dragDissipations[thermalPhasei];
+            }
+        }        
+          
 
         EEqn.relax();
         fvConstraints().constrain(EEqn);

@@ -226,10 +226,16 @@ public:
             PtrList<surfaceScalarField>& dragCorrf
         ) const;
 
-        //- Set the cell and faces drag correction fields
+        //- Set the cell drag correction for total energy equations
         void dragEnergy
         (
             PtrList<volScalarField>& dragEnergyTransfer
+        ) const;
+
+        //- Set the cell drag correction for internal energy equations
+        void dragDissipation
+        (
+            PtrList<volScalarField>& dragDissipations
         ) const;
 
         //- Read base phaseProperties dictionary

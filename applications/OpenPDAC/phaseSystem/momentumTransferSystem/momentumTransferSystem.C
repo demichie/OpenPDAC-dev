@@ -1248,6 +1248,9 @@ void Foam::momentumTransferSystem::dragEnergy
         }
     }
 
+    dragEnergyTransfers.clear();
+
+
     forAllConstIter(KdTable, Kds_, KdIter)
     {
         const volScalarField& K(*KdIter());
@@ -1275,13 +1278,138 @@ void Foam::momentumTransferSystem::dragEnergy
                     volVectorField("Umult", 0.5 * (Uphis[i] + Uphis[j]));
 
                 volScalarField dragEnergy = (dragForce & Umult);
-                addField(i, IOobject::groupName("dragEnergyTransfer", phase.name()), dragEnergy, dragEnergyTransfers);
+                addField
+                (
+                    i, 
+                    IOobject::groupName("dragEnergyTransfer", phase.name()), 
+                    dragEnergy, 
+                    dragEnergyTransfers
+                );
             }
         }
     }
 }
 
+void Foam::momentumTransferSystem::dragDissipation
+(
+    PtrList<volScalarField>& dragDissipations
+) const
+{
+    const word& continuousPhaseName = fluid_.continuousPhaseName();
+    labelList movingPhases(fluid_.phases().size(), -1);
+    forAll(fluid_.movingPhases(), movingPhasei)
+    {
+        movingPhases[fluid_.movingPhases()[movingPhasei].index()] =
+            movingPhasei;
+    }
 
+    PtrList<volVectorField> Uphis(fluid_.movingPhases().size());
+    forAll(fluid_.movingPhases(), movingPhasei)
+    {
+        Uphis.set
+        (
+            movingPhasei,
+            fvc::reconstruct(fluid_.movingPhases()[movingPhasei].phi())
+        );
+    }
+
+    Kds_.clear();
+
+    // Update the drag coefficients
+    forAllConstIter
+    (
+        dragModelTable,
+        dragModels_,
+        dragModelIter
+    )
+    {
+        const phaseInterface& interface = dragModelIter()->interface();
+
+        tmp<volScalarField> tKd(dragModelIter()->K());
+        volScalarField& Kd = tKd.ref();
+        Kds_.insert(dragModelIter.key(), tKd.ptr());
+
+        // Zero-gradient the drag coefficient to boundaries with fixed velocity
+        forAll(Kd.boundaryField(), patchi)
+        {
+            if
+            (
+                (
+                    !interface.phase1().stationary()
+                 && interface.phase1().U()()
+                   .boundaryField()[patchi].fixesValue()
+                )
+             && (
+                    !interface.phase2().stationary()
+                 && interface.phase2().U()()
+                   .boundaryField()[patchi].fixesValue()
+                )
+            )
+            {
+                Kd.boundaryFieldRef()[patchi] =
+                    Kd.boundaryField()[patchi].patchInternalField();
+            }
+        }
+    }
+
+    dragDissipations.clear();
+
+    // Main loop over the couple of phases with drag
+    forAllConstIter(KdTable, Kds_, KdIter)
+    {
+        const volScalarField& K(*KdIter());
+        const phaseInterface interface(fluid_, KdIter.key());
+
+        forAllConstIter(phaseInterface, interface, iter)
+        {
+            const phaseModel& phase = iter();
+            const phaseModel& otherPhase = iter.otherPhase();
+
+            const label i = movingPhases[phase.index()];
+            const label j = movingPhases[otherPhase.index()];
+
+            if (i != -1) // Moving phases only
+            {
+                // Compute the drag coefficient K
+                const volScalarField K1
+                (
+                    (otherPhase/max(otherPhase, otherPhase.residualAlpha()))*K
+                );
+                volVectorField Urel = (j == -1 ? -Uphis[i] : (Uphis[j] - Uphis[i]));
+
+                // initialize dissipation field
+                volScalarField dragDissipation = 0.0 * K1 * magSqr(Urel);
+
+                // Case 1: Gas-Solid interaction
+                if (phase.name() == continuousPhaseName && j != -1) // gas phase
+                {
+                    // all the dissipation is assigned to the gas phase
+                    dragDissipation = K1 * magSqr(Urel);
+                }
+                else if (otherPhase.name() == continuousPhaseName && j != -1) // solid phase
+                {
+                    // no dissipation
+                    dragDissipation = 0.0;
+                }                
+                // Case 2: Solid-Solid interaction
+                else if (j != -1)
+                {
+                    // dissipation is split between the solid phases
+                    dragDissipation = 0.5 * K1 * magSqr(Urel);
+                }
+
+                // Add the dissipation to the i-th field of dragDissipations
+                addField
+                (
+                    i,
+                    IOobject::groupName("dragDissipation", phase.name()),
+                    dragDissipation,
+                    dragDissipations
+                );
+            }
+        }
+    }
+}
 
 bool Foam::momentumTransferSystem::read()
 {
