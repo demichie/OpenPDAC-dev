@@ -389,7 +389,7 @@ Foam::solvers::OpenPDAC::OpenPDAC(fvMesh& mesh)
     
         // evolve particle cloud
         clouds.evolve();
-
+        
         // restore startTime
         const_cast<Time&>(runTime).setTime(startTime_,startTime_);
                 
