@@ -2,7 +2,7 @@ foamCleanCase
 
 python smoothCraterArea.py
 
-blockMesh -dict system/blockMeshDict > log.blockMesh
+blockMesh > log.blockMesh
 echo blockMesh completed
 
 

@@ -119,16 +119,16 @@ def main():
     output_plot = "modified_points.png"
 
     # Percorsi dei file
-    block_mesh_file = os.path.join("system", "blockMeshDict")
+    geometry_file = os.path.join("constant", "geometryParameters")
     topo_grid_file = os.path.join("system", "topoGridDict")
 
     # Leggi i parametri dai file
     try:
-        block_mesh_data = read_openfoam_dict(block_mesh_file)
+        geometry_data = read_openfoam_dict(geometry_file)
         topo_grid_data = read_openfoam_dict(topo_grid_file)
 
         # Estrai i parametri desiderati
-        r_crater_top = block_mesh_data.get("r_crater_top")
+        r_crater_top = geometry_data.get("r_crater_top")
         x_vent = topo_grid_data.get("xVent")
         y_vent = topo_grid_data.get("yVent")
 

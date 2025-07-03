@@ -134,8 +134,8 @@ PIMPLE
     lowPressureTimestepCorrection false;
     faceMomentum        yes;
     dragCorrection      yes;
-    dragEnergyCorrection false;
-    totalEnergy         false; 
+    dragEnergyCorrection yes;
+    totalEnergy         no; 
     momentumPredictor   no; 
     
     outerCorrectorResidualControl

@@ -12,44 +12,8 @@ FoamFile {
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-convertToMeters 1.0;
-
-// Parameters to insert
-
-// Crater paramters
-r_crater_top 10.0; // Radius of crater top in meters
-r_crater_base 10.0; // Radius of conduit in meters
-h_crater 100.0; // Length of crater in meters
-dx_crater_base 0.0;
-dy_crater_base 0.0;
-
-// Conduit parameters
-h_conduit 0.0; //Lenght of conduit in meters (0-> no conduit)
-r_conduit_base 10.0; // Radius of the conduit base in meters
-dx_conduit_base 0.0;
-dy_conduit_base 0.0;
-
-// Atmospheric domain parameters
-atm_top_z 2500.0; //Vertical extension of the atmospheric domain in meters
-atm_x_pos 1500.0; //Horizontal extension of the right part of atmospheric domain in meters
-atm_y_pos 1500.0; //Horizontal extension of the front part of atmospheric domain in meters
-atm_y_neg -1500.0; //Horizontal extension of the back part of atmospheric domain in meters
-atm_x_neg -1500.0; //Horizontal extension of the left part of atmospheric domain in meters
-
-n_vert_layers 3; // number of layers in the atmosphere
-
-hor_cell_size_top_atm 40.0; // horizontal cell size at the top of the atmopshere block
-
-dz_to_dxy_crater_ratio 2.0; // aspect-ratio of cells at the top of the crater/base of atmosphere
-dz_to_dxy_atm_ratio 2.0; // aspect-ratio of cells at the top of the bottom layer
-
-// cyl_radial_expansion 0.05;
-
-// Fixed parameters
-crater_top_z 0.0; //position of the crater top
-degAngle 45.0;
-degAngleHalf 22.5;
-coeff 1.1; // Parameter for the shape of the octagon
+// Include shared geometry parameters
+#include "../constant/geometryParameters"
 
 #codeStream {
 

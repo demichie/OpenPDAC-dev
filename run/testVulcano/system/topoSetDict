@@ -13,7 +13,8 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-#include "blockMeshDict"
+// Include shared geometry parameters
+#include "../constant/geometryParameters"
 
 actions
 (
