@@ -13,7 +13,7 @@ The simulation features:
     -   **Stage 1: Hydrostatic Initialization.** A preliminary run establishes a stable atmosphere. Using separate `.init` files is necessary because the inlet conditions would otherwise create an incorrect atmospheric profile.
     -   **Stage 2: Main Surge Simulation.** The main run uses different `.run` files to define the inlet conditions.
 
--    The `Allrun` script executes two separate runs (`.init` and `.run`), likely representing two different experimental conditions (e.g., varying particle concentrations or impact speeds) to compare results.
+-    The `Allrun` script executes two separate runs (`.init` and `.run`) for the two stages.
 
 This tutorial is an excellent example of how to use OpenFOAM to replicate and explore the physics described in a scientific publication.
 
@@ -23,7 +23,7 @@ This tutorial is an excellent example of how to use OpenFOAM to replicate and ex
 
 -   **Phenomenon:** 2D simulation of a collapsing eruptive column impacting a flat surface.
 -   **Physics:** Multiphase flow with one gas and two solid phases (coarse and fine particles).
--   **Methodology:** A sequence of two independent simulations is run to test different parameter sets. This is managed by swapping dictionary files (`controlDict`, `fvSolution`) and renaming field files in the `0` directory.
+-   **Methodology:** A sequence of two independent simulations is initialize a stable atmosphere and then to simulate the process. This is managed by swapping dictionary files (`controlDict`, `fvSolution`) and renaming field files in the `0` directory.
 -   **Meshing:** A simple 2D domain created with `blockMesh`. `changeDictionary` is used to apply the `empty` boundary condition for 2D simulations.
 
 ---
