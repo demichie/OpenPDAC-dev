@@ -45,15 +45,15 @@ This tutorial is structured with numbered scripts to allow for a step-by-step ex
 ### Step-by-Step Execution (Recommended)
 
 First, make all scripts executable:
-[CODE_BASH]
+```bash
 chmod +x *.sh
-[CODE_END]
+```
 
 #### Step 1: Generate the Mesh
 This script handles all meshing operations.
-[CODE_BASH]
+```bash
 ./01_run_meshing.sh
-[CODE_END]
+```
 This script will:
 1.  Clean the case directory.
 2.  Run the Python script to process the topography data.
@@ -65,9 +65,9 @@ This script will:
 
 #### Step 2: Initialize the Flow Fields
 This script runs a preliminary simulation to set up a stable atmosphere and then defines the explosion source.
-[CODE_BASH]
+```bash
 ./02_run_fieldInitialization.sh
-[CODE_END]
+```
 This script will:
 1.  Swap in the `.init` dictionaries, setting `hydrostaticInitialisation` to `true`.
 2.  Run the `OpenPDAC` solver to initialize the atmospheric profile.
@@ -77,9 +77,9 @@ This script will:
 
 #### Step 3: Run the Main Simulation
 This script executes the main phreatic explosion simulation.
-[CODE_BASH]
+```bash
 ./03_run_simulation.sh
-[CODE_END]
+```
 This script will:
 1.  Swap in the `.run` dictionaries, setting `hydrostaticInitialisation` to `false`.
 2.  Run the `OpenPDAC` solver to simulate the explosion dynamics.
@@ -90,18 +90,18 @@ This script will:
 ### Automated Execution
 
 To run the entire workflow from start to finish without interruption, simply execute the `Allrun` script:
-[CODE_BASH]
+```bash
 ./Allrun
-[CODE_END]
+```
 
 ---
 
 ## 5. Cleaning the Case
 
 To remove all generated data (logs, processor directories, time steps) and reset the case to its original state, run the `Allclean` script:
-[CODE_BASH]
+```bash
 ./Allclean
-[CODE_END]
+```
 This is essential before starting a new run from scratch.
 
 ---
