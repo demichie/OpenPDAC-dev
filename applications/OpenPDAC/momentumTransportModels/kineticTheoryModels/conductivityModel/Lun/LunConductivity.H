@@ -22,17 +22,17 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::kineticTheoryModels::conductivityModels::Syamlal
+    Foam::kineticTheoryModels::conductivityModels::Lun
 
 Description
 
 SourceFiles
-    Syamlal.C
+    Lun.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef SyamlalConductivity_H
-#define SyamlalConductivity_H
+#ifndef LunConductivity_H
+#define LunConductivity_H
 
 #include "conductivityModel.H"
 
@@ -46,28 +46,28 @@ namespace conductivityModels
 {
 
 /*---------------------------------------------------------------------------*\
-                           Class Syamlal Declaration
+                          Class Lun Declaration
 \*---------------------------------------------------------------------------*/
 
-class Syamlal
+class Lun
 :
     public conductivityModel
 {
 
 public:
 
-    //- Runtime type information
-    TypeName("Syamlal");
+        //- Runtime type information
+        TypeName("Lun");
 
 
     // Constructors
 
         //- Construct from the coefficients dictionary
-        Syamlal(const dictionary& coeffDict);
+        Lun(const dictionary& coeffDict);
 
 
     //- Destructor
-    virtual ~Syamlal();
+    virtual ~Lun();
 
 
     // Member Functions
@@ -77,11 +77,12 @@ public:
             const volScalarField& alpha1,
             const volScalarField& Theta,
             const volScalarField& g0,
+            const volScalarField& beta,
             const volScalarField& rho1,
             const volScalarField& da,
             const dimensionedScalar& e
         ) const;
-        
+
         tmp<volScalarField> kappa
         (
             const volScalarField& alpha1,
@@ -93,7 +94,6 @@ public:
             const volScalarField& da,
             const dimensionedScalar& e
         ) const;
-        
 };
 
 

@@ -11,7 +11,7 @@ kineticTheoryModels/viscosityModel/none/noneViscosity.C
 kineticTheoryModels/conductivityModel/conductivityModel/conductivityModel.C
 kineticTheoryModels/conductivityModel/conductivityModel/conductivityModelNew.C
 kineticTheoryModels/conductivityModel/Gidaspow/GidaspowConductivity.C
-kineticTheoryModels/conductivityModel/Syamlal/SyamlalConductivity.C
+kineticTheoryModels/conductivityModel/Lun/LunConductivity.C
 
 kineticTheoryModels/radialModel/radialModel/radialModel.C
 kineticTheoryModels/radialModel/radialModel/radialModelNew.C

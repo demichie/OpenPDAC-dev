@@ -73,19 +73,23 @@ Foam::kineticTheoryModels::conductivityModels::Gidaspow::kappa
     const volScalarField& alpha1,
     const volScalarField& Theta,
     const volScalarField& g0,
+    const volScalarField& beta,
     const volScalarField& rho1,
     const volScalarField& da,
     const dimensionedScalar& e
 ) const
 {
     const scalar sqrtPi = sqrt(constant::mathematical::pi);
+    const scalar Pi = constant::mathematical::pi;
 
-    return rho1*da*sqrt(Theta)*
+    const dimensionedScalar eta = 0.5*(1.0 + e);
+
+    const volScalarField kappa = ( 75*rho1*da*sqrtPi*sqrt(Theta) )
+                                 / ( 384*eta );
+    return kappa/g0 *
     (
-        2*sqr(alpha1)*g0*(1 + e)/sqrtPi
-      + (9.0/8.0)*sqrtPi*g0*0.5*(1 + e)*sqr(alpha1)
-      + (15.0/16.0)*sqrtPi*alpha1
-      + (25.0/64.0)*sqrtPi/((1 + e)*g0)
+        sqr( 1+12/5*eta*alpha1*g0 ) +
+        512/(25*Pi)*sqr(eta)*sqr(alpha1*g0)
     );
 }
 

@@ -684,7 +684,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
         else
         {
             // 'thermal' conductivity (Table 3.3, p. 49)
-            kappa_ = conductivityModel_->kappa(alpha, Theta_, gs0_, rho, da, e_);
+            kappa_ = conductivityModel_->kappa(alpha, Theta_, gs0_, beta_, rho, da, e_);
         }
         
         const Foam::fvModels& fvModels(Foam::fvModels::New(mesh_));
@@ -767,7 +767,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
            /(2*max(alpha, residualAlpha_)*K4)
         );
 
-        kappa_ = conductivityModel_->kappa(alpha, Theta_, gs0_, rho, da, e_);
+        kappa_ = conductivityModel_->kappa(alpha, Theta_, gs0_, beta_, rho, da, e_);
     }
 
     Theta_.max(0);
