@@ -61,20 +61,20 @@ All tutorials follow a similar execution pattern.
 1.  Navigate into the directory of the tutorial you wish to run:
     ```bash
     cd name_of_the_tutorial
-    [CODE_END]
+    ```
 2.  Make the scripts executable:
     ```bash
     chmod +x Allrun Allclean
-    [CODE_END]
+    ```
 3.  Execute the main `Allrun` script to run the entire simulation from start to finish:
     ```bash
     ./Allrun
-    [CODE_END]
+    ```
 4.  For more complex cases like `testVulcano`, you can also run the step-by-step scripts (`./01_run_...`, etc.) to inspect the results at each stage.
 5.  To clean the case and remove all generated data, run:
     ```bash
     ./Allclean
-    [CODE_END]
+    ```
 
 ---
 
