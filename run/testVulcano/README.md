@@ -110,7 +110,11 @@ This is essential before starting a new run from scratch.
 
 -   **`01_run_meshing.sh` / `02_run_fieldInitialization.sh` / `03_run_simulation.sh`**: The sequential scripts for the workflow.
 -   **`Allrun` / `Allclean`**: Master scripts for running everything or cleaning up.
+-   **`smoothCraterArea.py`**: A Python script used to pre-process the raw ESRI topography data, likely to smooth the crater area to avoid overly sharp mesh features.
 -   **`constant/geometryParameters`**: A supplementary file, included by `blockMeshDict`, that defines the geometric parameters (dimensions, vertices) of the multi-block mesh, particularly for the sub-surface crater.
 -   **`system/topoGridDict`**: Configuration for the `topoGrid` utility (from OpenPDAC). It specifies the input topography file for surface deformation and defines the crater's position relative to the topography.
+-   **`system/topoSetDict`**: Used by `topoSet` to define cell sets, likely for identifying the sub-surface crater blocks for `setFields`.
 -   **`system/controlDict.init` & `system/controlDict.run`**: Different control dictionaries for the initialization and main run phases. The key difference is the `hydrostaticInitialisation` switch.
--   ... (and the other files as before)
+-   **`system/fvSolution.init` & `system/fvSolution.run`**: May contain different solver settings or tolerances optimized for the quasi-static initialization versus the highly transient main run.
+-   **`constant/cloudProperties.init` & `constant/cloudProperties.run`**: Different physical properties for the two stages of the simulation.
+-   **`org.0/`**: A backup of the initial condition files. This directory is copied to `0` at the start of the meshing process.
