@@ -5,7 +5,7 @@ kineticTheoryModels/kineticTheoryModel/kineticTheoryModel.C
 kineticTheoryModels/viscosityModel/viscosityModel/kineticTheoryViscosityModel.C
 kineticTheoryModels/viscosityModel/viscosityModel/kineticTheoryViscosityModelNew.C
 kineticTheoryModels/viscosityModel/Gidaspow/GidaspowViscosity.C
-kineticTheoryModels/viscosityModel/Syamlal/SyamlalViscosity.C
+kineticTheoryModels/viscosityModel/Lun/LunViscosity.C
 kineticTheoryModels/viscosityModel/none/noneViscosity.C
 
 kineticTheoryModels/conductivityModel/conductivityModel/conductivityModel.C

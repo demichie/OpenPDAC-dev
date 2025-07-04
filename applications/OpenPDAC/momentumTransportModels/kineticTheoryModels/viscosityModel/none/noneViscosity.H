@@ -76,7 +76,9 @@ public:
         (
             const volScalarField& alpha1,
             const volScalarField& Theta,
+            const dimensionedScalar& ThetaSmall,
             const volScalarField& g0,
+            const volScalarField& beta,
             const volScalarField& rho1,
             const volScalarField& da,
             const dimensionedScalar& e

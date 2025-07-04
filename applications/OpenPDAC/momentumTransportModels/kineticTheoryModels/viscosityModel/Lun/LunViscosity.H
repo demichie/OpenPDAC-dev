@@ -22,22 +22,19 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::kineticTheoryModels::viscosityModel
+    Foam::kineticTheoryModels::viscosityModels::Lun
 
 Description
 
 SourceFiles
-    viscosityModel.C
+    LunViscosity.C
 
 \*---------------------------------------------------------------------------*/
 
-#ifndef kineticTheoryViscosityModel_H
-#define kineticTheoryViscosityModel_H
+#ifndef LunViscosity_H
+#define LunViscosity_H
 
-#include "dictionary.H"
-#include "volFields.H"
-#include "dimensionedTypes.H"
-#include "runTimeSelectionTables.H"
+#include "kineticTheoryViscosityModel.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -45,68 +42,42 @@ namespace Foam
 {
 namespace kineticTheoryModels
 {
+namespace viscosityModels
+{
 
 /*---------------------------------------------------------------------------*\
-                       Class viscosityModel Declaration
+                          Class Lun Declaration
 \*---------------------------------------------------------------------------*/
 
-class viscosityModel
+class Lun
+:
+    public viscosityModel
 {
-    // Private member functions
+    // Private Data
 
-        //- Read the coefficients from coeffDict
-        virtual bool readCoeffs(const dictionary& coeffDict)
-        {
-            return true;
-        }
+        dictionary coeffDict_;
 
-
+        //- Angle of internal friction
+        dimensionedScalar alfa_;
+        
 public:
 
     //- Runtime type information
-    TypeName("viscosityModel");
-
-    // Declare runtime constructor selection table
-    declareRunTimeSelectionTable
-    (
-        autoPtr,
-        viscosityModel,
-        dictionary,
-        (
-            const dictionary& dict
-        ),
-        (dict)
-    );
-
+    TypeName("Lun");
 
     // Constructors
 
         //- Construct from the coefficients dictionary
-        viscosityModel(const dictionary& coeffDict);
-
-        //- Disallow default bitwise copy construction
-        viscosityModel(const viscosityModel&) = delete;
-
-
-    // Selectors
-
-        static autoPtr<viscosityModel> New
-        (
-            const dictionary& dict
-        );
+        Lun(const dictionary& coeffDict);
 
 
     //- Destructor
-    virtual ~viscosityModel();
+    virtual ~Lun();
 
 
     // Member Functions
 
-        //- Read the coefficients from the optional ".*Coeffs" sub-dictionary
-        //  of the given dictionary
-        bool read(const dictionary& dict);
-
-        virtual tmp<volScalarField> nu
+        tmp<volScalarField> nu
         (
             const volScalarField& alpha1,
             const volScalarField& Theta,
@@ -116,9 +87,9 @@ public:
             const volScalarField& rho1,
             const volScalarField& da,
             const dimensionedScalar& e
-        ) const = 0;
-
-        virtual tmp<volScalarField> nu
+        ) const;
+        
+        tmp<volScalarField> nu
         (
             const volScalarField& alpha1,
             const volScalarField& Theta,
@@ -129,18 +100,13 @@ public:
             const volScalarField& rho1,
             const volScalarField& da,
             const dimensionedScalar& e
-        ) const = 0;
-
-
-    // Member Operators
-
-        //- Disallow default bitwise assignment
-        void operator=(const viscosityModel&) = delete;
+        ) const;        
 };
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+} // End namespace viscosityModels
 } // End namespace kineticTheoryModels
 } // End namespace Foam
 

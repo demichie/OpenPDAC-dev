@@ -538,13 +538,13 @@ void Foam::RASModels::kineticTheoryModel::correct()
 
     // Drag
     const dispersedPhaseInterface interface(phase_, continuousPhase);
-    const volScalarField beta
+    const volScalarField beta_
     (
         fluid.foundInterfacialModel<dragModel>(interface)
       ? fluid.lookupInterfacialModel<dragModel>(interface).K()
       : volScalarField::New
         (
-            "beta",
+            "beta_",
             phase_.mesh(),
             dimensionedScalar(dragModel::dimK, 0)
         )
@@ -559,14 +559,14 @@ void Foam::RASModels::kineticTheoryModel::correct()
         {
             // Particle viscosity (Eqs. B4-B7 MFIX-2012.pdf)
             nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, ThetaSmall, gs0_, sumAlphaGs0_, beta, rho, da, e_);
+                                       Theta_, ThetaSmall, gs0_, sumAlphaGs0_, beta_, rho, da, e_);
             lambda_ = (4.0/3.0)*da*sumAlphaGs0_*(1 + e_)*ThetaSqrt/sqrtPi;
         }
         else
         {
             // Particle viscosity (Table 3.2, p.47)
             nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, gs0_, rho, da, e_);
+                                       Theta_, ThetaSmall, gs0_, beta_, rho, da, e_);
             // Bulk viscosity  p. 45 (Lun et al. 1984).
             lambda_ = (4.0/3.0)*da*max(residualAlpha_,alpha)*gs0_*(1 + e_)*ThetaSqrt/sqrtPi;
         }
@@ -663,11 +663,11 @@ void Foam::RASModels::kineticTheoryModel::correct()
         );
 
         // Eq. 3.25, p. 50 Js = J1 - J2
-        const volScalarField J1("J1", 3*beta);
+        const volScalarField J1("J1", 3*beta_);
         const volScalarField J2
         (
             "J2",
-            0.25*sqr(beta)*da*magSqr(U - Uc)
+            0.25*sqr(beta_)*da*magSqr(U - Uc)
            /(
                max(alpha, residualAlpha_)*rho
               *sqrtPi*(ThetaSqrt + ThetaSmallSqrt)
@@ -679,7 +679,7 @@ void Foam::RASModels::kineticTheoryModel::correct()
             // Eqs. B8-B12 MFIX-2012.pdf
             kappa_ = conductivityModel_->kappa(max(alpha, residualAlpha_), 
                                                max(residualTheta_,Theta_), gs0_, 
-                                               sumAlphaGs0_, beta, rho, da, e_);
+                                               sumAlphaGs0_, beta_, rho, da, e_);
         }
         else
         {
@@ -779,14 +779,14 @@ void Foam::RASModels::kineticTheoryModel::correct()
         if ( multiParticles_)
         {
             nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, ThetaSmall, gs0_, sumAlphaGs0_, beta, rho, da, e_);
+                                       Theta_, ThetaSmall, gs0_, sumAlphaGs0_, beta_, rho, da, e_);
             lambda_ = (4.0/3.0)*da*sumAlphaGs0_*(1 + e_)*ThetaSqrt/sqrtPi;
         }
         else
         {
             // Particle viscosity (Table 3.2, p.47)
             nut_ = viscosityModel_->nu(max(residualAlpha_,alpha), 
-                                       Theta_, gs0_, rho, da, e_);
+                                       Theta_, ThetaSmall, gs0_, beta_, rho, da, e_);
             // Bulk viscosity  p. 45 (Lun et al. 1984).
             lambda_ = (4.0/3.0)*da*max(residualAlpha_,alpha)*gs0_*(1 + e_)*ThetaSqrt/sqrtPi;
         }

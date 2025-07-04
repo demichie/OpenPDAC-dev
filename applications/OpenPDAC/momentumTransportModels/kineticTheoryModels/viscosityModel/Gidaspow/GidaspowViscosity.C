@@ -72,7 +72,9 @@ Foam::kineticTheoryModels::viscosityModels::Gidaspow::nu
 (
     const volScalarField& alpha1,
     const volScalarField& Theta,
+    const dimensionedScalar& ThetaSmall,
     const volScalarField& g0,
+    const volScalarField& beta,
     const volScalarField& rho1,
     const volScalarField& da,
     const dimensionedScalar& e
@@ -114,19 +116,14 @@ Foam::kineticTheoryModels::viscosityModels::Gidaspow::nu
     const scalar sqrtPi = sqrt(constant::mathematical::pi);
     const scalar Pi = constant::mathematical::pi;
 
-    // Eq. B12 MFIX2012
     const dimensionedScalar eta = 0.5*(1.0 + e);
-    // Eq. B6 MFIX2012    
+
     const volScalarField mu = 5.0/96.0*rho1*da*sqrt(Theta)*sqrtPi; 
-    // Eq. B7 MFIX2012
+
     const volScalarField mu_b = 256.0/(5.0*Pi)*mu*alpha1*sumAlphaGs0;
-    // Eq. B5 MFIX2012
-    const volScalarField muStar = ( rho1*alpha1*g0*Theta*mu ) /
-                                  ( rho1*sumAlphaGs0*(Theta+ThetaSmall) + 
-                                    (2*beta*mu)/(rho1*alpha1) );  
-    // Eq. B4 MFIX2012
-    const volScalarField mu_i = (2+alfa_)/3.0*( muStar / (g0*eta*(2-eta))*
-                                (1+8/5*eta*sumAlphaGs0)*(1+8/5*eta*(3*eta-2)*sumAlphaGs0)+
+
+    const volScalarField mu_i = ( mu / (g0*eta)*
+                                sqr(1+8/5*eta*sumAlphaGs0)+
                                 3/5*eta*mu_b );
 
     return volScalarField::New
