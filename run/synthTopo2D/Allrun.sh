@@ -1,59 +1,113 @@
-rm -rf constant/triSurface/*.stl
-rm -rf 0
-foamCleanCase
-echo "foamCleanCase completed"
+#!/bin/sh
 
-cd preprocessing
-python3 ASCtoSTL.py
-echo "ASCtoSTL completed"
+# =============================================================================
+# Allrun Script for the 2D Synthetic Explosion Tutorial
+# -----------------------------------------------------------------------------
+# This script orchestrates the entire simulation workflow:
+# 1. Cleans the case directory.
+# 2. Generates a 2D mesh refined around a crater region using a
+#    snappyHexMesh -> extrudeMesh workflow.
+# 3. Runs a two-stage simulation:
+#    - An initialization run to establish a hydrostatic atmosphere.
+#    - A main run to simulate the explosion from a sub-surface source.
+#
+# Usage: ./Allrun
+# =============================================================================
 
-cd ..
-surfaceCheck constant/triSurface/surface_crater_closed.stl > log.surfaceCheck0
-surfaceCheck constant/triSurface/surface_conduit_closed.stl > log.surfaceCheck1
-surfaceCheck constant/triSurface/surface_total_closed.stl > log.surfaceCheck2
+# Change to the script's directory for robust execution
+cd "${0%/*}" || exit 1
 
-echo "surfaceCheck completed"
+# Source the OpenFOAM functions for running applications
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+
+
+# --- PHASE 0: CLEANING ---
+
+echo "--> Cleaning the case from previous runs..."
+./Allclean.sh
+
+
+# --- PHASE 1: MESHING ---
+# In this phase, we generate the 2D computational mesh.
+
+echo "--> Running Python script to generate STL geometry from ASCII..."
+(
+    cd preprocessing || exit 1
+    python3 ASCtoSTL.py
+)
+
+echo "--> Checking the quality of the generated STL surfaces..."
+runApplication surfaceCheck constant/triSurface/surface_crater_closed.stl
+mv log.surfaceCheck log.surfaceCheck0
+
+runApplication surfaceCheck constant/triSurface/surface_conduit_closed.stl
+mv log.surfaceCheck log.surfaceCheck1
+
+runApplication surfaceCheck constant/triSurface/surface_total_closed.stl
+mv log.surfaceCheck log.surfaceCheck2
 
 cp ./system/controlDict.init ./system/controlDict
-blockMesh > log.blockMesh
-echo "blockMesh completed"
 
-checkMesh -allTopology -allGeometry > log.checkMesh0
-echo "checkMesh completed"
+echo "--> Creating the background mesh with blockMesh..."
+runApplication blockMesh
 
-snappyHexMesh -overwrite > log.snappyHexMesh
-echo "snappyHexMesh completed"
+echo "--> Performing initial mesh quality check..."
+runApplication checkMesh -allTopology -allGeometry
 
-extrudeMesh > log.extrudeMesh
-echo "extrudeMesh completed"
+mv log.checkMesh log.checkMesh0
 
-changeDictionary > log.changeDictionary
-echo "changeDictionary completed"
+echo "--> Refining mesh with snappyHexMesh..."
+runApplication snappyHexMesh -overwrite
 
-checkMesh -allTopology -allGeometry > log.checkMesh1
-echo "checkMesh completed"
+echo "--> Extruding the mesh to create a 2D domain..."
+runApplication extrudeMesh
 
-topoSet -dict topoSetDict-conduit > log.topoSet
-echo "topoSet completed"
+echo "--> Setting 2D empty boundary conditions..."
+runApplication changeDictionary
 
+echo "--> Performing final mesh quality check..."
+runApplication checkMesh -allTopology -allGeometry
+
+echo "--> Creating cellSet for the conduit (explosion source)..."
+runApplication topoSet -dict system/topoSetDict-conduit
+
+
+# --- PHASE 2: INITIALIZATION RUN ---
+# Here, we establish a stable hydrostatic atmosphere.
+
+echo "--> Preparing for the hydrostatic initialization run..."
+# Set up the dictionaries for the initialization phase
 cp ./system/controlDict.init ./system/controlDict
 cp ./system/fvSolution.init ./system/fvSolution
 cp ./constant/cloudProperties.init ./constant/cloudProperties
 
+# Copy base fields from org.0
 rm -rf 0
 cp -r org.0 0
 
-foamRun > log.foamRun0
-echo "foamRun0 completed"
+echo "--> Starting the hydrostatic initialization run..."
+# getApplication reads the solver name from the system/controlDict
+runApplication $(getApplication)
 
-setFields > log.setFields
-echo "setFields completed"
+mv log.foamRun log.foamRun0
 
-cp ./system/controlDict.run system/controlDict
-cp ./system/fvSolution.run system/fvSolution
+echo "--> Setting explosion source conditions with setFields..."
+runApplication setFields
+
+
+# --- PHASE 3: MAIN SIMULATION RUN ---
+# Now, we run the primary explosion simulation.
+
+echo "--> Preparing for the main simulation run..."
+# Set up the dictionaries for the main simulation phase
+cp ./system/controlDict.run ./system/controlDict
+cp ./system/fvSolution.run ./system/fvSolution
 cp ./constant/cloudProperties.run ./constant/cloudProperties
 
-foamRun > log.foamRun1
-echo "foamRun1 completed"
+echo "--> Starting the main explosion simulation..."
+runApplication $(getApplication)
 
-
+# -----------------------------------------------------------------------------
+echo
+echo "Allrun script finished successfully."
+# =============================================================================
