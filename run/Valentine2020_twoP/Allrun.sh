@@ -28,6 +28,9 @@ cd "${0%/*}" || exit 1
 echo "--> Cleaning the case from previous runs..."
 ./Allclean
 
+# needed buy blockMesh
+cp ./system/controlDict.init ./system/controlDict
+
 echo "--> Creating the background mesh with blockMesh..."
 runApplication blockMesh
 
@@ -62,7 +65,7 @@ done
 
 echo "--> Starting the initialization run (foamRun0)..."
 runApplication $(getApplication)
-
+mv log.foamRun log.foamRun0
 
 # --- PHASE 2: MAIN SIMULATION RUN ---
 # This stage runs the simulation with the second set of parameters, defined
