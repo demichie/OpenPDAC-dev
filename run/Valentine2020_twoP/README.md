@@ -23,7 +23,7 @@ This tutorial is an excellent example of how to use OpenFOAM to replicate and ex
 
 -   **Phenomenon:** 2D simulation of a collapsing eruptive column impacting a flat surface.
 -   **Physics:** Multiphase flow with one gas and two solid phases (coarse and fine particles).
--   **Methodology:** A sequence of two independent simulations is initialize a stable atmosphere and then to simulate the process. This is managed by swapping dictionary files (`controlDict`, `fvSolution`) and renaming field files in the `0` directory.
+-   **Methodology:** Two-stages simulation to initialize a stable atmosphere and then to simulate the process. This is managed by swapping dictionary files (`controlDict`, `fvSolution`) and renaming field files in the `0` directory.
 -   **Meshing:** A simple 2D domain created with `blockMesh`. `changeDictionary` is used to apply the `empty` boundary condition for 2D simulations.
 
 ---
