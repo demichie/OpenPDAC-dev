@@ -10,7 +10,7 @@ The simulation features:
 -   **One gas phase** (air).
 -   **Two distinct solid phases** (`particles1` and `particles2`), representing the "coarse" and "fine" particles discussed in the paper. This allows for the study of particle segregation and differential coupling with the gas phase.
 -   A **two-stage simulation process**, managed by swapping configuration files.
-    -   **Stage 1: Hydrostatic Initialization.** A preliminary run establishes a stable atmosphere. Using separate `.init` files is necessary because the final surge inlet conditions would otherwise create an incorrect atmospheric profile.
+    -   **Stage 1: Hydrostatic Initialization.** A preliminary run establishes a stable atmosphere. Using separate `.init` files is necessary because the inlet conditions would otherwise create an incorrect atmospheric profile.
     -   **Stage 2: Main Surge Simulation.** The main run uses different `.run` files to define the inlet conditions.
 
 -    The `Allrun` script executes two separate runs (`.init` and `.run`), likely representing two different experimental conditions (e.g., varying particle concentrations or impact speeds) to compare results.
