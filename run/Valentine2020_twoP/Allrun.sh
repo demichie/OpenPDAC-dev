@@ -1,47 +1,95 @@
-foamCleanCase
-echo "foamCleanCase completed"
+#!/bin/sh
 
+# =============================================================================
+# Allrun Script for the Column Collapse Tutorial
+# -----------------------------------------------------------------------------
+# This script orchestrates the entire simulation workflow, based on the
+# numerical experiments described in Valentine (2020).
+# It models the collapse of a gas-particle mixture to study the initiation
+# of pyroclastic currents.
+#
+# The workflow includes:
+# 1. Cleaning the case and setting up the mesh.
+# 2. Running a first simulation with an ".init" configuration.
+# 3. Running a second simulation with a ".run" configuration.
+#
+# Usage: ./Allrun
+# =============================================================================
+
+# Change to the script's directory for robust execution
+cd "${0%/*}" || exit 1
+
+# Source the OpenFOAM functions for running applications
+. "$WM_PROJECT_DIR/bin/tools/RunFunctions"
+
+
+# --- PHASE 0: CLEANING & MESHING ---
+
+echo "--> Cleaning the case from previous runs..."
+./Allclean
+
+echo "--> Creating the background mesh with blockMesh..."
+runApplication blockMesh
+
+echo "--> Performing mesh quality check..."
+runApplication checkMesh -allTopology -allGeometry
+
+echo "--> Setting 2D empty boundary conditions..."
+runApplication changeDictionary
+
+
+# --- PHASE 1: INITIALIZATION RUN ---
+# This stage runs the simulation with the first set of parameters, defined
+# by the ".init" configuration files.
+
+echo "--> Preparing for the initialization run..."
+# Set up the dictionaries for this phase
 cp ./system/controlDict.init ./system/controlDict
 cp ./system/fvSolution.init ./system/fvSolution
 
-blockMesh > log.blockMesh
-echo "blockMesh completed"
-
-checkMesh -allTopology -allGeometry > log.checkMesh
-echo "checkMesh completed"
-
-changeDictionary > log.changeDictionary
-echo "changeDictionary completed"
-
+# Copy base fields from org.0 and rename them for the ".init" run
 rm -rf 0
 cp -r org.0 0
-mv 0/alpha.air.init 0/alpha.air
-mv 0/alpha.particles1.init 0/alpha.particles1
-mv 0/alpha.particles2.init 0/alpha.particles2
-mv 0/T.air.init 0/T.air
-mv 0/T.particles1.init 0/T.particles1
-mv 0/T.particles2.init 0/T.particles2
-mv 0/U.air.init 0/U.air
-mv 0/U.particles1.init 0/U.particles1
-mv 0/U.particles2.init 0/U.particles2
+echo "--> Setting up fields for the '.init' run..."
+for field in alpha.air T.air U.air; do
+    mv "0/${field}.init" "0/${field}"
+done
+for particle in particles1 particles2; do
+    for field in alpha T U; do
+        mv "0/${field}.${particle}.init" "0/${field}.${particle}"
+    done
+done
 
-foamRun > log.foamRun0
-echo "foamRun 0 completed"
+echo "--> Starting the initialization run (foamRun0)..."
+runApplication $(getApplication)
 
 
-mv 0/alpha.air.run 0/alpha.air
-mv 0/alpha.particles1.run 0/alpha.particles1
-mv 0/alpha.particles2.run 0/alpha.particles2
-mv 0/T.air.run 0/T.air
-mv 0/T.particles1.run 0/T.particles1
-mv 0/T.particles2.run 0/T.particles2
-mv 0/U.air.run 0/U.air
-mv 0/U.particles1.run 0/U.particles1
-mv 0/U.particles2.run 0/U.particles2
+# --- PHASE 2: MAIN SIMULATION RUN ---
+# This stage runs the simulation with the second set of parameters, defined
+# by the ".run" configuration files. This likely represents a different
+# physical scenario (e.g., different particle concentration or properties).
 
-cp ./system/controlDict.run system/controlDict
-cp ./system/fvSolution.run system/fvSolution
+echo "--> Preparing for the main simulation run..."
+# Set up the dictionaries for this phase
+cp ./system/controlDict.run ./system/controlDict
+cp ./system/fvSolution.run ./system/fvSolution
 
-foamRun > log.foamRun1
-echo "foamRun 1 completed"
+# Rename the fields in the '0' directory for the ".run" configuration.
+# NOTE: This setup overwrites the previous initial conditions in the 0 folder.
+echo "--> Setting up fields for the '.run' run..."
+for field in alpha.air T.air U.air; do
+    mv "0/${field}.run" "0/${field}"
+done
+for particle in particles1 particles2; do
+    for field in alpha T U; do
+        mv "0/${field}.${particle}.run" "0/${field}.${particle}"
+    done
+done
 
+echo "--> Starting the main simulation (foamRun1)..."
+runApplication $(getApplication)
+
+# -----------------------------------------------------------------------------
+echo
+echo "Allrun script finished successfully."
+# =============================================================================
