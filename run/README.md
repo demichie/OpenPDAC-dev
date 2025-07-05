@@ -80,5 +80,5 @@ All tutorials follow a similar execution pattern.
 
 ## 5. Author / Contact
 
-[Your Name / Institution]
-[your.email@example.com]
+[Mattia de' Michieli Vitturi / Istituto Nazionale di Geofisica e Vulcanologia, Sezione di Pisa]
+[mattia.demichielivitturi@ingv.it]
