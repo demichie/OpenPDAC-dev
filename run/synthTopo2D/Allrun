@@ -24,7 +24,7 @@ cd "${0%/*}" || exit 1
 # --- PHASE 0: CLEANING ---
 
 echo "--> Cleaning the case from previous runs..."
-./Allclean.sh
+./Allclean
 
 
 # --- PHASE 1: MESHING ---
