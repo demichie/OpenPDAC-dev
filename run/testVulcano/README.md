@@ -46,7 +46,7 @@ This tutorial is structured with numbered scripts to allow for a step-by-step ex
 
 First, make all scripts executable:
 ```bash
-chmod +x *.sh
+chmod +x Allrun Allclean *.sh
 ```
 
 #### Step 1: Generate the Mesh
