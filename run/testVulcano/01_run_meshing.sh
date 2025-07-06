@@ -24,7 +24,7 @@ cd "${0%/*}" || exit 1
 
 echo "--> Cleaning the case from previous runs..."
 # Use the Allclean script to ensure a fresh start
-./Allclean.sh
+./Allclean
 
 echo "--> Running Python script for geometry preparation..."
 python3 smoothCraterArea.py
